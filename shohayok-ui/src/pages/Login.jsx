@@ -1,11 +1,34 @@
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { authApi } from "../api/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const data = await authApi.login({ email, password });
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/");
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <>
@@ -276,7 +299,7 @@ export default function Login() {
 
           {/* Form */}
           <div className="login-right">
-            <div className="login-form">
+            <form className="login-form" onSubmit={handleLogin}>
               <div className="form-icon">🛡</div>
               <p className="form-tag">SECURE ACCESS</p>
               <h2 className="form-heading">Sign In</h2>
@@ -301,14 +324,21 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   style={{ paddingRight: 42 }}
                 />
-                <button className="toggle-pass" onClick={() => setShowPass(!showPass)}>
+                <button className="toggle-pass" type="button" onClick={() => setShowPass(!showPass)}>
                   {showPass ? "🙈" : "👁"}
                 </button>
               </div>
 
               <Link to="/forgot-password" className="forgot-link">Forgot Password?</Link>
 
-              <button className="login-btn">LOGIN →</button>
+              {error && (
+                <div style={{ color: "#ef4444", marginBottom: 16, fontSize: 14, textAlign: "center" }}>
+                  {error}
+                </div>
+              )}
+              <button className="login-btn" type="submit" disabled={loading}>
+                {loading ? "Logging in..." : "LOGIN →"}
+              </button>
 
               <div className="divider">
                 <hr /><span>OR</span><hr />
@@ -317,7 +347,7 @@ export default function Login() {
               <p className="register-row">
                 Don't have an account? <Link to="/register">Register here</Link>
               </p>
-            </div>
+            </form>
           </div>
 
         </div>

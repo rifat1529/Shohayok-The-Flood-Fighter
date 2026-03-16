@@ -1,4 +1,4 @@
-import { useState } from "react";
+/*import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
 
@@ -8,6 +8,42 @@ export default function Register() {
   const [step, setStep] = useState(1);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+*/
+import { useState } from "react";
+import Navbar from "../components/Navbar";
+import { Link, useNavigate } from "react-router-dom";
+import { authApi } from "../api/auth";
+
+export default function Register() {
+  const [form, setForm] = useState({ name: "", phone: "", district: "", email: "", password: "", role: "" });
+  const [showPass, setShowPass] = useState(false);
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const mapRole = (r) => {
+    if (r === "volunteer") return "volunteer";
+    return "user"; // victim/medic/donor -> user
+  };
+
+  const handleRegister = async () => {
+    setError("");
+    setError("");
+    try {
+      await authApi.register({
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        password: form.password,
+        role: mapRole(form.role)
+      });
+      navigate("/login");
+    } catch (err) {
+      setError(err.message || "Registration failed");
+    }
+  };
 
   return (
     <>
@@ -321,11 +357,16 @@ export default function Register() {
 
                   <div className="reg-actions">
                     <button className="btn-back" onClick={() => setStep(1)}>← Back</button>
-                    <button className="btn-next">Create Account ✓</button>
+                    <button className="btn-next" onClick={handleRegister}>Create Account ✓</button>
                   </div>
                 </>
               )}
 
+              {error && (
+                <div style={{ color: "#ef4444", marginTop: 10, textAlign: "center", fontFamily: "'Share Tech Mono', monospace", fontSize: 13 }}>
+                  {error}
+                </div>
+              )}
               <p className="login-hint">
                 Already have an account? <Link to="/login">Sign in →</Link>
               </p>
