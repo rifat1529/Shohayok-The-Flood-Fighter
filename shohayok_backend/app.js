@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+
 dotenv.config();
 
 const app = express();
@@ -22,6 +23,10 @@ app.get("/health", (req, res) => {
 
 // --- Routes ---
 app.use("/auth", require("./routes/authRoutes"));
+app.use("/auth", require("./routes/authRoutes"));
+app.use("/requests", require("./routes/requestRoutes"));
+app.use("/locations", require("./routes/locationRoutes"));
+
 
 // --- 404 Handler ---
 app.use((req, res) => {
