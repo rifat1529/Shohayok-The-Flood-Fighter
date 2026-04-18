@@ -1,13 +1,17 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
-const Request = sequelize.define(
-  "Request",
+const AcceptedRequest = sequelize.define(
+  "AcceptedRequest",
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
+    },
+    originalRequestId: {
+      type: DataTypes.UUID,
+      allowNull: false
     },
     userId: {
       type: DataTypes.UUID,
@@ -42,14 +46,14 @@ const Request = sequelize.define(
       allowNull: false
     },
     status: {
-      type: DataTypes.ENUM("pending", "approved", "declined"),
-      defaultValue: "pending"
+      type: DataTypes.ENUM("approved"),
+      defaultValue: "approved"
     }
   },
   {
-    tableName: "requests",
+    tableName: "accepted_requests",
     timestamps: true
   }
 );
 
-module.exports = Request;
+module.exports = AcceptedRequest;
