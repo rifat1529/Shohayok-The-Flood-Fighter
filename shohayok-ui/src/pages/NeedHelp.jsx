@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
+import { apiRequest } from "../api/http";
 
 export default function NeedHelp() {
   const [isRegistered, setIsRegistered] = useState(false);
@@ -7,6 +8,42 @@ export default function NeedHelp() {
   const [form, setForm] = useState({ name: "", phone: "", district: "", subDistrict: "", village: "", trapped: "", need: "" });
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const handleSubmit = async () => {
+    try {
+      if (isRegistered) {
+        const token = localStorage.getItem("accessToken");
+        await apiRequest("/requests", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            trapped: form.trapped,
+            need: form.need,
+            district: form.district,
+            subDistrict: form.subDistrict,
+            village: form.village
+          })
+        });
+      } else {
+        await apiRequest("/requests/guest", {
+          method: "POST",
+          body: JSON.stringify({
+            name: form.name,
+            phone: form.phone,
+            district: form.district,
+            subDistrict: form.subDistrict,
+            village: form.village,
+            trapped: form.trapped,
+            need: form.need
+          })
+        });
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      alert(err.message || "Request submit failed");
+    }
+  };
 
   if (submitted) {
     return (
@@ -295,7 +332,7 @@ export default function NeedHelp() {
                 </select>
               </div>
 
-              <button className="nh-submit" onClick={() => setSubmitted(true)}>
+              <button className="nh-submit" onClick={handleSubmit}>
                 🚨 SUBMIT HELP REQUEST
               </button>
 
