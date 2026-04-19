@@ -1,14 +1,4 @@
-/*import { useState } from "react";
-import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
 
-export default function Register() {
-  const [form, setForm] = useState({ name: "", phone: "", district: "", email: "", password: "", role: "" });
-  const [showPass, setShowPass] = useState(false);
-  const [step, setStep] = useState(1);
-
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-*/
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
