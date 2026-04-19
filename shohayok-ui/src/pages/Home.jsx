@@ -1,312 +1,179 @@
-import Navbar from "../components/Navbar";
+import { useState, useEffect } from "react"; // Data fetch korar jonno
 import { Link } from "react-router-dom";
 
-const REPORTS = [
-  { id: 1, area: "Sylhet", date: "12 Jan 2026", rescued: 120, img: "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=600&q=80", tag: "Flood Relief" },
-  { id: 2, area: "Sunamganj", date: "08 Jan 2026", rescued: 84, img: "https://images.unsplash.com/photo-1597435877854-a2c66f28da2f?w=600&q=80", tag: "Rescue Op" },
-];
-
 export default function Home() {
+  const [reports, setReports] = useState([]); // Database theke data ekhane thakbe
+  const [loading, setLoading] = useState(true);
+
+  // --- Database theke data fetch korar logic ---
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        // Apnar backend API URL (e.g., http://localhost:5000/requests)
+        const response = await fetch("http://localhost:5000/requests");
+        const data = await response.json();
+        
+        // Jodi backend-e data thake tobe seta set korbe, na thakle default/static data dekhabe
+        setReports(data.length > 0 ? data : STATIC_REPORTS);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+        setReports(STATIC_REPORTS); // Error hoile static data dekhabe
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
 
         .home-root {
           min-height: 100vh;
-          background: #0a0c10;
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-          padding-bottom: 60px;
+          background: radial-gradient(circle at 50% 0%, #1a1c24 0%, #0a0c10 100%);
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          color: #f8fafc;
+          padding-bottom: 80px;
         }
 
         .home-container {
-          max-width: 960px;
+          max-width: 1100px;
           margin: 0 auto;
-          padding: 36px 24px;
+          padding: 40px 24px;
         }
 
-        /* Hero */
         .hero {
           position: relative;
-          background: linear-gradient(135deg, rgba(220,38,38,0.12), rgba(15,23,42,0.8));
-          border: 1px solid rgba(220,38,38,0.2);
-          border-radius: 20px;
-          padding: 40px 36px;
-          margin-bottom: 36px;
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 32px;
+          padding: 60px;
+          margin-bottom: 48px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           overflow: hidden;
         }
 
-        .hero::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse at 80% 50%, rgba(220,38,38,0.15) 0%, transparent 60%);
-          pointer-events: none;
-        }
-
-        .hero-eyebrow {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #ef4444;
-          letter-spacing: 3px;
-          margin-bottom: 10px;
-        }
+        .hero-content { z-index: 2; max-width: 600px; }
 
         .hero-heading {
-          font-size: 48px;
-          font-weight: 700;
-          color: #f8fafc;
-          line-height: 1.05;
-          margin-bottom: 14px;
-          letter-spacing: 1px;
+          font-size: 64px;
+          font-weight: 800;
+          line-height: 1.1;
+          margin-bottom: 20px;
         }
 
         .hero-heading span {
-          color: #ef4444;
+          background: linear-gradient(90deg, #ef4444, #f87171);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
-        .hero-sub {
-          font-size: 16px;
-          color: #64748b;
-          max-width: 440px;
-          margin-bottom: 28px;
-          line-height: 1.6;
-        }
-
-        .hero-actions {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .btn-map {
-          display: flex; align-items: center; gap: 8px;
-          background: rgba(34,197,94,0.12);
-          color: #4ade80;
-          border: 1px solid rgba(34,197,94,0.3);
-          padding: 12px 24px;
-          border-radius: 10px;
-          font-size: 14px;
+        .btn-primary {
+          background: #ef4444;
+          color: white;
+          padding: 14px 28px;
+          border-radius: 14px;
           font-weight: 700;
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 1.5px;
           text-decoration: none;
-          transition: background 0.2s;
-        }
-        .btn-map:hover { background: rgba(34,197,94,0.2); }
-
-        .btn-chat {
-          display: flex; align-items: center; gap: 8px;
-          background: rgba(99,102,241,0.12);
-          color: #818cf8;
-          border: 1px solid rgba(99,102,241,0.3);
-          padding: 12px 24px;
-          border-radius: 10px;
-          font-size: 14px;
-          font-weight: 700;
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 1.5px;
-          text-decoration: none;
-          transition: background 0.2s;
-        }
-        .btn-chat:hover { background: rgba(99,102,241,0.2); }
-
-        .hero-badge {
-          position: absolute;
-          top: 28px; right: 28px;
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 11px;
-          color: #64748b;
-          text-align: right;
-        }
-
-        .hero-badge .big {
-          font-size: 36px;
-          color: #ef4444;
-          font-weight: 700;
-          display: block;
-          line-height: 1;
-        }
-
-        /* Reports */
-        .section-title {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #64748b;
-          letter-spacing: 3px;
-          text-transform: uppercase;
-          margin-bottom: 16px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          display: inline-block;
+          transition: 0.3s;
         }
 
         .reports-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 16px;
-          margin-bottom: 36px;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 24px;
+          margin-bottom: 56px;
         }
 
         .report-card {
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 16px;
+          background: #16181d;
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
           overflow: hidden;
-          transition: border-color 0.2s, transform 0.2s;
+          transition: 0.3s;
         }
 
-        .report-card:hover {
-          border-color: rgba(255,255,255,0.14);
-          transform: translateY(-2px);
-        }
+        .report-img { width: 100%; height: 200px; object-fit: cover; }
+        .report-body { padding: 24px; }
 
-        .report-img {
-          width: 100%;
-          height: 160px;
-          object-fit: cover;
-          display: block;
-          filter: brightness(0.65) saturate(0.8);
-        }
-
-        .report-body {
-          padding: 16px 18px;
-        }
-
-        .report-tag {
-          font-size: 10px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #ef4444;
-          letter-spacing: 2px;
-          margin-bottom: 6px;
-        }
-
-        .report-area {
-          font-size: 20px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin-bottom: 4px;
-        }
-
-        .report-meta {
+        .sos-banner {
+          background: linear-gradient(90deg, #7f1d1d 0%, #ef4444 100%);
+          border-radius: 24px;
+          padding: 40px;
           display: flex;
-          gap: 16px;
-          font-size: 13px;
-          color: #64748b;
-          font-family: 'Share Tech Mono', monospace;
-        }
-
-        .report-meta strong {
-          color: #4ade80;
-          font-size: 15px;
-        }
-
-        /* Need Help CTA */
-        .need-help-cta {
-          position: relative;
-          background: linear-gradient(135deg, rgba(220,38,38,0.2), rgba(239,68,68,0.08));
-          border: 1px solid rgba(220,38,38,0.35);
-          border-radius: 16px;
-          padding: 28px 32px;
-          display: flex;
-          align-items: center;
           justify-content: space-between;
-          gap: 24px;
-          overflow: hidden;
+          align-items: center;
         }
 
-        .need-help-cta::after {
-          content: '🚨';
-          position: absolute;
-          right: 140px;
-          font-size: 80px;
-          opacity: 0.08;
-        }
-
-        .cta-text h3 {
-          font-size: 24px;
-          font-weight: 700;
-          color: #fca5a5;
-          margin-bottom: 4px;
-        }
-
-        .cta-text p {
-          font-size: 14px;
-          color: #64748b;
-        }
-
-        .btn-need-help {
-          background: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 12px;
-          padding: 16px 36px;
-          font-size: 18px;
-          font-weight: 700;
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 2px;
-          cursor: pointer;
+        .btn-emergency {
+          background: white;
+          color: #ef4444;
+          padding: 18px 40px;
+          border-radius: 16px;
+          font-weight: 800;
           text-decoration: none;
-          display: inline-block;
-          transition: background 0.2s, transform 0.15s;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-
-        .btn-need-help:hover {
-          background: #dc2626;
-          transform: scale(1.03);
         }
       `}</style>
 
       <div className="home-root">
-        <Navbar />
+        {/* Navbar bad deya hoyeche ReferenceError fix korar jonno */}
         <div className="home-container">
 
-          {/* Hero */}
-          <div className="hero">
-            <p className="hero-eyebrow">// DISASTER RESPONSE NETWORK</p>
-            <h1 className="hero-heading">Rescue.<br /><span>Respond.</span><br />Recover.</h1>
-            <p className="hero-sub">Real-time coordination for flood relief and emergency rescue across Bangladesh.</p>
-            <div className="hero-actions">
-              <Link to="/map" className="btn-map">🗺 Map View</Link>
-              <Link to="/chat" className="btn-chat">💬 Chat</Link>
+          <header className="hero">
+            <div className="hero-content">
+              <span style={{color: '#ef4444', letterSpacing: '4px', fontSize: '13px'}}>SHOHAYOK v2.0</span>
+              <h1 className="hero-heading">Rescue.<br /><span>Respond.</span><br />Recover.</h1>
+              <p style={{color: '#94a3b8', marginBottom: '32px'}}>Real-time coordination network for flood relief operations in Bangladesh.</p>
+              <div className="hero-actions">
+                <Link to="/map" className="btn-primary">View Live Map</Link>
+              </div>
             </div>
-            <div className="hero-badge">
-              <span className="big">34</span>
-              ACTIVE REQUESTS
+            <div className="stat-card" style={{border: '1px solid #ef4444', padding: '20px', borderRadius: '20px'}}>
+              <span style={{fontSize: '48px', color: '#ef4444', fontWeight: '800'}}>34</span><br/>
+              <span style={{fontSize: '12px', color: '#64748b'}}>ACTIVE REQUESTS</span>
             </div>
-          </div>
+          </header>
 
-          {/* Reports */}
-          <p className="section-title">Recent Rescue Reports</p>
+          <h2 style={{marginBottom: '20px', color: '#64748b', fontSize: '14px', textTransform: 'uppercase'}}>Latest Operations</h2>
+          
           <div className="reports-grid">
-            {REPORTS.map((r) => (
+            {reports.map((r) => (
               <div key={r.id} className="report-card">
-                <img className="report-img" src={r.img} alt={r.area} />
+                <img className="report-img" src={r.img || "https://via.placeholder.com/600x400"} alt={r.area} />
                 <div className="report-body">
-                  <p className="report-tag">{r.tag}</p>
-                  <p className="report-area">{r.area}</p>
-                  <div className="report-meta">
-                    <span>📅 {r.date}</span>
-                    <span>👥 <strong>{r.rescued}</strong> rescued</span>
+                  <h3 style={{fontSize: '24px', marginBottom: '8px'}}>{r.area}</h3>
+                  <div style={{display: 'flex', justifyContent: 'space-between', color: '#64748b'}}>
+                    <span>{r.date}</span>
+                    <span style={{color: '#4ade80'}}>+{r.rescued} Rescued</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Need Help CTA */}
-          <div className="need-help-cta">
-            <div className="cta-text">
-              <h3>Are you in danger?</h3>
-              <p>Request emergency rescue immediately. We're here 24/7.</p>
+          <section className="sos-banner">
+            <div>
+              <h3 style={{fontSize: '32px', fontWeight: '800'}}>In an Emergency?</h3>
+              <p>Request immediate help from our rescue teams.</p>
             </div>
-            <Link to="/need-help" className="btn-need-help">NEED HELP</Link>
-          </div>
+            <Link to="/need-help" className="btn-emergency">GET HELP NOW</Link>
+          </section>
 
         </div>
       </div>
     </>
   );
 }
+
+// Static fallback data
+const STATIC_REPORTS = [
+  { id: 1, area: "Sylhet", date: "12 Jan 2026", rescued: 120, img: "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=600&q=80", tag: "Flood Relief" },
+  { id: 2, area: "Sunamganj", date: "08 Jan 2026", rescued: 84, img: "https://images.unsplash.com/photo-1597435877854-a2c66f28da2f?w=600&q=80", tag: "Rescue Op" },
+];
