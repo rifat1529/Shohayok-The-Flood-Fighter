@@ -1,65 +1,78 @@
-import { useState } from "react";
+import "../styles/help.css";
 import Navbar from "../components/Navbar";
-import { apiRequest } from "../api/http";
+import { useLocation } from "react-router-dom";
+import { useState } from "react";
 
 export default function NeedHelp() {
-  const [isRegistered, setIsRegistered] = useState(false);
+  const location = useLocation();
+  const user = location.state?.userData || JSON.parse(localStorage.getItem("user")) || {};
+
+  // --- States Define (Error fix korar jonno) ---
   const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", district: "", subDistrict: "", village: "", trapped: "", need: "" });
+  const [isRegistered, setIsRegistered] = useState(!!user.id);
+  const [loading, setLoading] = useState(false);
+  
+  const [form, setForm] = useState({
+    userId: user.id || "",
+    name: user.name || "",
+    phone: user.phone || "",
+    district: "",
+    subDistrict: "",
+    village: "",
+    trapped: 1,
+    need: "rescue"
+  });
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-
-  const handleSubmit = async () => {
-    try {
-      if (isRegistered) {
-        const token = localStorage.getItem("accessToken");
-        await apiRequest("/requests", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            trapped: form.trapped,
-            need: form.need,
-            district: form.district,
-            subDistrict: form.subDistrict,
-            village: form.village
-          })
-        });
-      } else {
-        await apiRequest("/requests/guest", {
-          method: "POST",
-          body: JSON.stringify({
-            name: form.name,
-            phone: form.phone,
-            district: form.district,
-            subDistrict: form.subDistrict,
-            village: form.village,
-            trapped: form.trapped,
-            need: form.need
-          })
-        });
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      alert(err.message || "Request submit failed");
-    }
+  // Helper to handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    // লজিক অনুযায়ী সঠিক URL সেট করা
+    const url = isRegistered 
+      ? "http://localhost:5000/requests"        // রেজিস্টার্ড ইউজারের জন্য
+      : "http://localhost:5000/requests/guest";  // গেস্ট ইউজারের জন্য
+
+    const options = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    };
+
+    // যদি ইউজার রেজিস্টার্ড হয়, তবে হেডার-এ টোকেন পাঠাতে হবে
+    if (isRegistered) {
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        options.headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(url, options);
+
+    if (response.ok) {
+      setSubmitted(true);
+    } else {
+      const errorData = await response.json();
+      alert(errorData.message || "Request failed");
+    }
+  } catch (err) {
+    alert("Connection error: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // --- Success View (Apnar deya original styling) ---
   if (submitted) {
     return (
       <>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
-          .nh-root { min-height:100vh; background:#0a0c10; font-family:'Rajdhani',sans-serif; color:#e2e8f0; }
-          .nh-center { display:flex; align-items:center; justify-content:center; min-height:calc(100vh - 64px); padding:24px; }
-          .success-card { max-width:420px; width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(34,197,94,0.25); border-radius:20px; padding:48px 36px; text-align:center; }
-          .success-icon { font-size:60px; margin-bottom:16px; }
-          .success-title { font-size:28px; font-weight:700; color:#4ade80; margin-bottom:10px; }
-          .success-sub { font-size:15px; color:#475569; line-height:1.7; margin-bottom:28px; }
-          .success-id { font-family:'Share Tech Mono',monospace; font-size:13px; color:#334155; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:10px 16px; margin-bottom:28px; }
-          .success-id span { color:#818cf8; }
-          .back-btn { background:linear-gradient(135deg,#059669,#10b981); color:white; border:none; border-radius:10px; padding:13px 32px; font-size:15px; font-weight:700; font-family:'Rajdhani',sans-serif; letter-spacing:1.5px; cursor:pointer; }
-        `}</style>
+        
         <div className="nh-root">
           <Navbar />
           <div className="nh-center">
@@ -76,198 +89,10 @@ export default function NeedHelp() {
     );
   }
 
+  // --- Form View (Apnar deya original styling) ---
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
-
-        .nh-root {
-          min-height: 100vh;
-          background: #0a0c10;
-          background-image: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(220,38,38,0.07) 0%, transparent 60%);
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-          padding-bottom: 60px;
-        }
-
-        .nh-center {
-          display: flex;
-          justify-content: center;
-          padding: 36px 20px;
-        }
-
-        .nh-card {
-          width: 100%;
-          max-width: 500px;
-          background: rgba(255,255,255,0.025);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          overflow: hidden;
-        }
-
-        .nh-card-top {
-          background: linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.06));
-          border-bottom: 1px solid rgba(220,38,38,0.2);
-          padding: 28px 32px;
-        }
-
-        .nh-eyebrow {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #ef4444;
-          letter-spacing: 3px;
-          margin-bottom: 6px;
-        }
-
-        .nh-title {
-          font-size: 30px;
-          font-weight: 700;
-          color: #f8fafc;
-          margin-bottom: 4px;
-        }
-
-        .nh-sub {
-          font-size: 13px;
-          color: #64748b;
-        }
-
-        .nh-body {
-          padding: 28px 32px;
-        }
-
-        /* Toggle */
-        .toggle-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 12px;
-          padding: 14px 18px;
-          margin-bottom: 24px;
-          cursor: pointer;
-        }
-
-        .toggle-label {
-          font-size: 14px;
-          font-weight: 600;
-          color: #94a3b8;
-          font-family: 'Share Tech Mono', monospace;
-          letter-spacing: 1px;
-        }
-
-        .toggle-switch {
-          width: 44px; height: 24px;
-          border-radius: 100px;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.12);
-          position: relative;
-          transition: background 0.2s;
-        }
-
-        .toggle-switch.on {
-          background: rgba(99,102,241,0.3);
-          border-color: rgba(99,102,241,0.4);
-        }
-
-        .toggle-knob {
-          position: absolute;
-          top: 3px; left: 3px;
-          width: 16px; height: 16px;
-          border-radius: 50%;
-          background: #475569;
-          transition: transform 0.2s, background 0.2s;
-        }
-
-        .toggle-switch.on .toggle-knob {
-          transform: translateX(20px);
-          background: #818cf8;
-        }
-
-        /* Fields */
-        .field-section {
-          margin-bottom: 20px;
-        }
-
-        .field-section-title {
-          font-size: 10px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #475569;
-          letter-spacing: 3px;
-          text-transform: uppercase;
-          margin-bottom: 12px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .nh-label {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #64748b;
-          letter-spacing: 2px;
-          margin-bottom: 6px;
-          display: block;
-        }
-
-        .nh-input, .nh-select {
-          width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.09);
-          border-radius: 10px;
-          padding: 12px 14px;
-          font-size: 15px;
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-          outline: none;
-          box-sizing: border-box;
-          margin-bottom: 12px;
-          transition: border-color 0.2s;
-          appearance: none;
-        }
-
-        .nh-input::placeholder { color: #334155; }
-        .nh-input:focus, .nh-select:focus { border-color: rgba(239,68,68,0.4); }
-        .nh-select option { background: #1e293b; }
-
-        .input-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0 12px;
-        }
-
-        /* Submit */
-        .nh-submit {
-          width: 100%;
-          background: linear-gradient(135deg, #dc2626, #ef4444);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          padding: 16px;
-          font-size: 17px;
-          font-weight: 700;
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 2px;
-          cursor: pointer;
-          transition: opacity 0.2s, transform 0.15s;
-          margin-top: 8px;
-        }
-
-        .nh-submit:hover { opacity: 0.88; transform: scale(1.01); }
-
-        .register-hint {
-          text-align: center;
-          font-size: 13px;
-          color: #475569;
-          margin-top: 16px;
-          font-family: 'Share Tech Mono', monospace;
-          letter-spacing: 0.5px;
-        }
-
-        .register-hint a {
-          color: #818cf8;
-          text-decoration: none;
-        }
-      `}</style>
+      
 
       <div className="nh-root">
         <Navbar />
@@ -280,7 +105,6 @@ export default function NeedHelp() {
             </div>
 
             <div className="nh-body">
-              {/* Toggle */}
               <div className="toggle-row" onClick={() => setIsRegistered(!isRegistered)}>
                 <span className="toggle-label">Already Registered?</span>
                 <div className={`toggle-switch ${isRegistered ? "on" : ""}`}>
@@ -288,59 +112,56 @@ export default function NeedHelp() {
                 </div>
               </div>
 
-              {/* Personal info (only if not registered) */}
-              {!isRegistered && (
-                <div className="field-section">
-                  <p className="field-section-title">Personal Information</p>
-                  <div className="input-grid">
-                    <div>
-                      <label className="nh-label">FULL NAME</label>
-                      <input className="nh-input" placeholder="Your name" value={form.name} onChange={set("name")} />
-                    </div>
-                    <div>
-                      <label className="nh-label">PHONE</label>
-                      <input className="nh-input" placeholder="01XXXXXXXXX" value={form.phone} onChange={set("phone")} />
+              <form onSubmit={handleSubmit}>
+                {!isRegistered && (
+                  <div className="field-section">
+                    <p className="field-section-title">Personal Information</p>
+                    <div className="input-grid">
+                      <div>
+                        <label className="nh-label">FULL NAME</label>
+                        <input name="name" className="nh-input" placeholder="Your name" value={form.name} onChange={handleChange} required />
+                      </div>
+                      <div>
+                        <label className="nh-label">PHONE</label>
+                        <input name="phone" className="nh-input" placeholder="01XXXXXXXXX" value={form.phone} onChange={handleChange} required />
+                      </div>
                     </div>
                   </div>
+                )}
+
+                <div className="field-section">
+                  <p className="field-section-title">Location Details</p>
                   <label className="nh-label">DISTRICT</label>
-                  <input className="nh-input" placeholder="e.g. Sunamganj" value={form.district} onChange={set("district")} />
+                  <input name="district" className="nh-input" placeholder="e.g. Sunamganj" value={form.district} onChange={handleChange} required />
                   <div className="input-grid">
                     <div>
                       <label className="nh-label">SUB-DISTRICT</label>
-                      <input className="nh-input" placeholder="Upazila" value={form.subDistrict} onChange={set("subDistrict")} />
+                      <input name="subDistrict" className="nh-input" placeholder="Upazila" value={form.subDistrict} onChange={handleChange} required />
                     </div>
                     <div>
                       <label className="nh-label">VILLAGE</label>
-                      <input className="nh-input" placeholder="Village name" value={form.village} onChange={set("village")} />
+                      <input name="village" className="nh-input" placeholder="Village name" value={form.village} onChange={handleChange} required />
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Situation */}
-              <div className="field-section">
-                <p className="field-section-title">Situation Details</p>
-                <label className="nh-label">PEOPLE TRAPPED</label>
-                <input className="nh-input" placeholder="e.g. 6" type="number" value={form.trapped} onChange={set("trapped")} />
-                <label className="nh-label">MAIN NEED</label>
-                <select className="nh-select" value={form.need} onChange={set("need")}>
-                  <option value="">Select type of help</option>
-                  <option value="rescue">🚁 Rescue</option>
-                  <option value="food">🍱 Food</option>
-                  <option value="medicine">💊 Medicine</option>
-                  <option value="shelter">🏕 Safe Shelter</option>
-                </select>
-              </div>
+                <div className="field-section">
+                  <p className="field-section-title">Situation Details</p>
+                  <label className="nh-label">PEOPLE TRAPPED</label>
+                  <input name="trapped" className="nh-input" type="number" value={form.trapped} onChange={handleChange} required />
+                  <label className="nh-label">MAIN NEED</label>
+                  <select name="need" className="nh-select" value={form.need} onChange={handleChange}>
+                    <option value="rescue">🚁 Rescue</option>
+                    <option value="food">🍱 Food</option>
+                    <option value="medicine">💊 Medicine</option>
+                    <option value="shelter">🏕 Safe Shelter</option>
+                  </select>
+                </div>
 
-              <button className="nh-submit" onClick={handleSubmit}>
-                🚨 SUBMIT HELP REQUEST
-              </button>
-
-              {!isRegistered && (
-                <p className="register-hint">
-                  Want faster help next time? <a href="/register">Complete registration →</a>
-                </p>
-              )}
+                <button type="submit" className="nh-submit" disabled={loading}>
+                  {loading ? "SENDING..." : "🚨 SUBMIT HELP REQUEST"}
+                </button>
+              </form>
             </div>
           </div>
         </div>
