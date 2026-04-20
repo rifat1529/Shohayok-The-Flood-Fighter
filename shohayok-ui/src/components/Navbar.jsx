@@ -1,3 +1,12 @@
+// function Navbar() {
+//   return (
+//     <div style={{ padding: "10px", background: "#eee" }}>
+//       <h3>Shohayok</h3>
+//     </div>
+//   );
+// }
+
+// export default Navbar;
 import { Link } from "react-router-dom";
 
 export default function Navbar() {
@@ -9,7 +18,7 @@ export default function Navbar() {
         <Link to="/map">Map</Link>
         <Link to="/chat">Chat</Link>
         <Link to="/login">Login</Link>
-        <Link to="/volunteer-head">VolunteerHead</Link>
+        <Link to="/volunteer-head-dashboard">VolunteerHead</Link>
         <Link to="/admin">Admin</Link>
 
 
