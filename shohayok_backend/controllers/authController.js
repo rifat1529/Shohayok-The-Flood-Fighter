@@ -28,7 +28,8 @@ const register = async (req, res) => {
       email,
       phone,
       passwordHash,
-      role: role || "user"
+      role: role || "user",
+      isActive: true // ✅ FIX
     });
 
     return res.status(201).json({
@@ -41,6 +42,7 @@ const register = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error("REGISTER ERROR:", err);
     return res.status(500).json({ message: "Registration failed" });
   }
 };
@@ -48,18 +50,25 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({ message: "Email & password required" });
     }
 
     const user = await User.findOne({ where: { email } });
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: "Invalid credentials" });
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: "Account inactive" });
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
+
     if (!ok) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Wrong password" });
     }
 
     const accessToken = signAccessToken({ id: user.id, role: user.role });
@@ -87,6 +96,7 @@ const login = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     return res.status(500).json({ message: "Login failed" });
   }
 };

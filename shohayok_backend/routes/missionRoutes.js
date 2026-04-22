@@ -1,14 +1,20 @@
 const express = require("express");
 const router = express.Router();
+const Mission = require("../models/Mission");
 
-const {
-  startMission,
-  endMission,
-  purgeMissionLocations
-} = require("../controllers/missionController");
+// ✅ GET ALL MISSIONS
+router.get("/", async (req, res) => {
+  try {
+    const missions = await Mission.findAll({
+      order: [["createdAt", "DESC"]]
+    });
 
-router.post("/start", startMission);
-router.patch("/end/:id", endMission);
-router.delete("/purge/:id", purgeMissionLocations);
+    res.json(missions);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch missions" });
+  }
+});
 
 module.exports = router;

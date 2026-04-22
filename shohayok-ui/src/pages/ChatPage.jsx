@@ -1,11 +1,19 @@
 import Chat from "../components/Chat";
+import { Navigate } from "react-router-dom";
 
 function ChatPage() {
-  // 🔥 test values (later dynamic হবে)
-  const userId = "test-user-1";
-  const roomId = "room-1";
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  return <Chat userId={userId} roomId={roomId} />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  const userId = user.id;
+
+  // 🔥 later API থেকে আনবা (এখন demo)
+  const conversationId = "demo-convo-1";
+
+  return <Chat userId={userId} conversationId={conversationId} />;
 }
 
 export default ChatPage;

@@ -2,8 +2,8 @@ const User = require("./User");
 const Conversation = require("./Conversation");
 const Message = require("./Message");
 
-Conversation.hasMany(Message, { foreignKey: "ConversationId" });
-Message.belongsTo(Conversation, { foreignKey: "ConversationId" });
+Conversation.hasMany(Message, { foreignKey: "conversationId" });
+Message.belongsTo(Conversation, { foreignKey: "conversationId" });
 
 Message.belongsTo(User, { as: "sender", foreignKey: "senderId" });
 
