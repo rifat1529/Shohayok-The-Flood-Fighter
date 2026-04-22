@@ -43,7 +43,8 @@ const Request = sequelize.define(
     },
     status: {
       type: DataTypes.ENUM("pending", "approved", "declined"),
-      defaultValue: "pending"
+       defaultValue: "pending"
+        
     }
   },
   {

@@ -4,13 +4,15 @@ export const authApi = {
   register: (payload) =>
     apiRequest("/auth/register", {
       method: "POST",
-      body: JSON.stringify(payload)
+      // body: JSON.stringify(payload)
+      body: payload
     }),
 
   login: (payload) =>
     apiRequest("/auth/login", {
       method: "POST",
-      body: JSON.stringify(payload)
+      // body: JSON.stringify(payload)
+      body: payload
     }),
 
   me: (token) =>

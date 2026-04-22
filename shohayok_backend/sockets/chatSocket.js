@@ -4,51 +4,43 @@ const chatSocket = (io) => {
   io.on("connection", (socket) => {
     console.log("🟢 User connected:", socket.id);
 
-    // 🔥 join room
-    socket.on("join_room", (roomId) => {
-      socket.join(roomId);
-      console.log(`User joined room: ${roomId}`);
+    // ✅ JOIN ROOM
+    socket.on("joinConversation", (conversationId) => {
+      socket.join(conversationId);
+      console.log("Joined:", conversationId);
     });
 
-    // 🔥 send message
-    socket.on("send_message", async (data) => {
+    // ✅ SEND MESSAGE
+    socket.on("sendMessage", async (data) => {
       try {
-        const { roomId, senderId, message } = data;
-
         console.log("📩 Incoming:", data);
 
-        // ✅ save to DB
-        const savedMessage = await Message.create({
+        const { conversationId, senderId, message } = data;
+
+        // 🔥 save DB
+        const saved = await Message.create({
           message,
           senderId,
-          ConversationId: roomId || null, // safe fallback
+          ConversationId
         });
 
-        // ✅ clean response (frontend friendly)
         const response = {
-          id: savedMessage.id,
-          message: savedMessage.message,
-          senderId: savedMessage.senderId,
-          roomId,
-          createdAt: savedMessage.createdAt,
+          id: saved.id,
+          message: saved.message,
+          senderId: saved.senderId,
+          createdAt: saved.createdAt
         };
 
-        // 🔥 send to all users in room
-        io.to(roomId).emit("receive_message", response);
+        // 🔥 emit to room
+        io.to(conversationId).emit("receiveMessage", response);
 
       } catch (err) {
-        console.error("❌ Message save error:", err.message);
-
-        // 🔥 send error to client (debug)
-        socket.emit("error_message", {
-          message: "Failed to send message",
-        });
+        console.error("❌ ERROR:", err);
       }
     });
 
-    // 🔴 disconnect
     socket.on("disconnect", () => {
-      console.log("🔴 User disconnected:", socket.id);
+      console.log("🔴 Disconnected:", socket.id);
     });
   });
 };

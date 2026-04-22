@@ -6,7 +6,7 @@ const sequelize = require("./config/database");
 const http = require("http");
 const { Server } = require("socket.io");
 const chatSocket = require("./sockets/chatSocket");
-
+const reportRoutes = require("./routes/reportRoutes");
 // models load
 require("./models");
 
@@ -33,7 +33,7 @@ chatSocket(io);
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log("✅ Models synced");
 
     // ❗ app.listen না, server.listen

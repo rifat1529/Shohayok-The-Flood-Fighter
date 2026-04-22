@@ -332,3 +332,26 @@
   letter-spacing: 0.3px;
   padding: 0 2px;
 }
+.msg-row.me {
+  flex-direction: row-reverse;
+}
+
+.msg-bubble {
+  background: #1f2937;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 260px;
+}
+
+.msg-row.me .msg-bubble {
+  background: #3b82f6;
+}
+
+.chat-window {
+  background: #0f172a;
+  padding: 20px;
+  overflow-y: auto;
+  height: 400px;
+  border-radius: 12px;
+}
