@@ -45,6 +45,16 @@ const User = sequelize.define(
     lastLoginAt: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+
+    // 🔥 NEW FIELDS FOR OTP
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    otpExpiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   },
   {
