@@ -6,7 +6,10 @@ const {
   login,
   refresh,
   logout,
-  me
+  me,
+  forgotPassword,
+  verifyOtp,
+  resetPassword
 } = require("../controllers/authController");
 
 const authenticate = require("../middleware/authenticate");
@@ -15,6 +18,11 @@ const authenticate = require("../middleware/authenticate");
 router.post("/register", register);
 router.post("/login", login);
 router.post("/refresh", refresh);
+
+// 🔥 NEW PASSWORD RESET ROUTES
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-otp", verifyOtp);
+router.post("/reset-password", resetPassword);
 
 // ✅ Protected routes
 router.post("/logout", authenticate, logout);
