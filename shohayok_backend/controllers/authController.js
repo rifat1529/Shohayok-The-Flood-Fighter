@@ -1,5 +1,10 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const crypto = require("crypto");
+const { sendOtpEmail } = require("../utils/email");
+function generateOTP() {
+  return crypto.randomInt(100000, 999999).toString(); // 6 digit
+}
 const {
   signAccessToken,
   signRefreshToken,
@@ -155,6 +160,82 @@ const logout = async (req, res) => {
     return res.status(500).json({ message: "Logout failed" });
   }
 };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const otp = generateOTP();
+
+    await user.update({
+      otp,
+      otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 min
+    });
+
+     await sendOtpEmail(email, otp);
+
+    // 👉 later email send করবো
+
+    res.json({ message: "OTP sent to email" });
+
+  } catch (err) {
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+};
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user || user.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (new Date() > user.otpExpiresAt) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    res.json({ message: "OTP verified" });
+
+  } catch (err) {
+    res.status(500).json({ message: "Verification failed" });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user || user.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (new Date() > user.otpExpiresAt) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    await user.update({
+      passwordHash,
+      otp: null,
+      otpExpiresAt: null
+    });
+
+    res.json({ message: "Password reset successful" });
+
+  } catch (err) {
+    res.status(500).json({ message: "Reset failed" });
+  }
+};
 
 const me = async (req, res) => {
   try {
@@ -182,4 +263,13 @@ function msToMillis(text) {
   return n * map[unit];
 }
 
-module.exports = { register, login, refresh, logout, me };
+module.exports = {
+  register,
+  login,
+  refresh,
+  logout,
+  me,
+  forgotPassword,
+  verifyOtp,
+  resetPassword
+};

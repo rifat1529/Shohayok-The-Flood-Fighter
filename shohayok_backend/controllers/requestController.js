@@ -3,6 +3,8 @@ const AcceptedRequest = require("../models/AcceptedRequest");
 const User = require("../models/User");
 const Mission = require("../models/Mission");
 const Conversation = require("../models/Conversation");
+const { sendAdminAlert } = require("../utils/email");
+const { Op } = require("sequelize");
 
 // 🔥 helper
 const getArea = (r) => `${r.district}, ${r.subDistrict}`;
@@ -17,7 +19,21 @@ const createGuestRequest = async (req, res) => {
     if (!name || !phone || !district || !subDistrict || !village || !trapped || !need) {
       return res.status(400).json({ message: "All guest fields required" });
     }
+    // 🔥 COUNT SAME AREA REQUESTS
+const count = await Request.count({
+  where: {
+    district: req.body.district,
+    subDistrict: req.body.subDistrict,
+    village: req.body.village,
+    status: "pending"
+  }
+});
 
+// 🔥 IF 5+ → SEND ALERT
+if (count >= 5) {
+  const area = `${req.body.district}, ${req.body.subDistrict}, ${req.body.village}`;
+  await sendAdminAlert(area, count);
+}
     const request = await Request.create({
       name,
       phone,
@@ -47,7 +63,21 @@ const createUserRequest = async (req, res) => {
     if (!trapped || !need || !district || !subDistrict || !village) {
       return res.status(400).json({ message: "All fields required" });
     }
+    // 🔥 COUNT SAME AREA REQUESTS
+const count = await Request.count({
+  where: {
+    district: req.body.district,
+    subDistrict: req.body.subDistrict,
+    village: req.body.village,
+    status: "pending"
+  }
+});
 
+// 🔥 IF 5+ → SEND ALERT
+if (count >= 5) {
+  const area = `${req.body.district}, ${req.body.subDistrict}, ${req.body.village}`;
+  await sendAdminAlert(area, count);
+}
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
