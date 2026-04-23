@@ -1,173 +1,212 @@
 import "../styles/help.css";
 import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import axios from "../api/axios";
 
 export default function NeedHelp() {
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  // 🔐 ONLY USER ALLOWED
-  if (!user || user.role !== "user") {
-    return <div style={{ padding: "20px" }}>Access Denied</div>;
-  }
-
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const [form, setForm] = useState({
-    userId: user.id,
-    name: user.name || "",
-    phone: user.phone || "",
+    name: "",
+    phone: "",
     district: "",
     subDistrict: "",
     village: "",
-    trapped: 1,
+    trapped: "",
     need: "rescue"
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  const [message, setMessage] = useState("");
+
+  const set = (k) => (e) =>
+    setForm({ ...form, [k]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setMessage("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token"); // 🔥 FIX
 
-      const res = await fetch("http://localhost:5000/requests", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(form)
+      // 🔥 LOGGED USER (token check)
+      if (token) {
+        await axios.post("/requests", {
+          trapped: form.trapped,
+          need: form.need,
+          district: form.district,
+          subDistrict: form.subDistrict,
+          village: form.village
+        });
+
+      } 
+      // 🔥 GUEST USER
+      else {
+        await axios.post("/requests/guest", {
+          name: form.name,
+          phone: form.phone,
+          district: form.district,
+          subDistrict: form.subDistrict,
+          village: form.village,
+          trapped: form.trapped,
+          need: form.need
+        });
+      }
+
+      setMessage("Request submitted successfully ✅");
+
+      setForm({
+        name: "",
+        phone: "",
+        district: "",
+        subDistrict: "",
+        village: "",
+        trapped: "",
+        need: "rescue"
       });
 
-      if (res.ok) {
-        setSubmitted(true);
-      } else {
-        const err = await res.json();
-        alert(err.message);
-      }
     } catch (err) {
-      alert("Error: " + err.message);
-    } finally {
-      setLoading(false);
+      setMessage(
+        err.response?.data?.message || "Failed to submit ❌"
+      );
     }
   };
-
-  // ✅ SUCCESS UI
-  if (submitted) {
-    return (
-      <div className="nh-root">
-        <Navbar />
-        <div className="nh-center">
-          <div className="success-card">
-            <div className="success-icon">✅</div>
-            <div className="success-title">Request Submitted</div>
-            <div className="success-sub">
-              Our rescue team will reach you as soon as possible.
-            </div>
-            <button className="back-btn" onClick={() => navigate("/")}>
-              Go Home
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="nh-root">
       <Navbar />
 
       <div className="nh-center">
-        <div className="nh-card">
-
-          {/* 🔥 TOP SECTION */}
+        <form className="nh-card" onSubmit={handleSubmit}>
+          
+          {/* 🔥 CARD HEADER */}
           <div className="nh-card-top">
-            <p className="nh-eyebrow">🚨 EMERGENCY REQUEST</p>
-            <h2 className="nh-title">Need Help?</h2>
-            <p className="nh-sub">
-              Fill this form to request emergency rescue or relief.
-            </p>
+            <div className="nh-eyebrow">EMERGENCY RESPONSE</div>
+            <h2 className="nh-title">Need Help</h2>
+            <div className="nh-sub">Submit your details to request immediate assistance.</div>
           </div>
 
-          {/* 🔥 FORM BODY */}
+          {/* 🔥 CARD BODY (FORM FIELDS) */}
           <div className="nh-body">
-            <form onSubmit={handleSubmit}>
+            
+            {/* 🔥 MESSAGE */}
+            {message && (
+              <div style={{
+                textAlign: "center",
+                padding: "12px",
+                marginBottom: "20px",
+                borderRadius: "8px",
+                background: message.includes("❌") ? "rgba(220,38,38,0.1)" : "rgba(34,197,94,0.1)",
+                border: `1px solid ${message.includes("❌") ? "rgba(220,38,38,0.2)" : "rgba(34,197,94,0.2)"}`,
+                color: message.includes("❌") ? "#ef4444" : "#4ade80",
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: "13px"
+              }}>
+                {message}
+              </div>
+            )}
 
-              {/* Location */}
+            {/* 🔥 GUEST FIELDS */}
+            {!localStorage.getItem("token") && (
               <div className="field-section">
-                <p className="field-section-title">Location Details</p>
-
-                <input
-                  name="district"
-                  className="nh-input"
-                  placeholder="District"
-                  value={form.district}
-                  onChange={handleChange}
-                  required
-                />
-
+                <div className="field-section-title">Contact Info</div>
                 <div className="input-grid">
+                  <div>
+                    <label className="nh-label">FULL NAME</label>
+                    <input
+                      className="nh-input"
+                      placeholder="Your Name"
+                      value={form.name}
+                      onChange={set("name")}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="nh-label">PHONE NUMBER</label>
+                    <input
+                      className="nh-input"
+                      placeholder="Phone"
+                      value={form.phone}
+                      onChange={set("phone")}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 🔥 LOCATION FIELDS */}
+            <div className="field-section">
+              <div className="field-section-title">Location Details</div>
+              <div className="input-grid">
+                <div>
+                  <label className="nh-label">DISTRICT</label>
                   <input
-                    name="subDistrict"
+                    className="nh-input"
+                    placeholder="District"
+                    value={form.district}
+                    onChange={set("district")}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="nh-label">SUB-DISTRICT</label>
+                  <input
                     className="nh-input"
                     placeholder="Sub District"
                     value={form.subDistrict}
-                    onChange={handleChange}
-                    required
-                  />
-
-                  <input
-                    name="village"
-                    className="nh-input"
-                    placeholder="Village"
-                    value={form.village}
-                    onChange={handleChange}
+                    onChange={set("subDistrict")}
                     required
                   />
                 </div>
               </div>
-
-              {/* Situation */}
-              <div className="field-section">
-                <p className="field-section-title">Situation Details</p>
-
+              <div style={{ marginTop: "12px" }}>
+                <label className="nh-label">VILLAGE / EXACT AREA</label>
                 <input
-                  name="trapped"
-                  type="number"
                   className="nh-input"
-                  value={form.trapped}
-                  onChange={handleChange}
+                  placeholder="Village"
+                  value={form.village}
+                  onChange={set("village")}
+                  required
                 />
-
-                <select
-                  name="need"
-                  className="nh-select"
-                  value={form.need}
-                  onChange={handleChange}
-                >
-                  <option value="rescue">🚁 Rescue</option>
-                  <option value="food">🍱 Food</option>
-                  <option value="medicine">💊 Medicine</option>
-                  <option value="shelter">🏕 Shelter</option>
-                </select>
               </div>
+            </div>
 
-              <button type="submit" className="nh-submit" disabled={loading}>
-                {loading ? "SENDING..." : "🚨 SUBMIT HELP REQUEST"}
-              </button>
+            {/* 🔥 EMERGENCY DETAILS */}
+            <div className="field-section">
+              <div className="field-section-title">Emergency Info</div>
+              <div className="input-grid">
+                <div>
+                  <label className="nh-label">PEOPLE TRAPPED</label>
+                  <input
+                    className="nh-input"
+                    type="number"
+                    placeholder="Number"
+                    value={form.trapped}
+                    onChange={set("trapped")}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="nh-label">PRIMARY NEED</label>
+                  <select
+                    className="nh-select"
+                    value={form.need}
+                    onChange={set("need")}
+                  >
+                    <option value="rescue">Rescue</option>
+                    <option value="food">Food</option>
+                    <option value="medicine">Medicine</option>
+                    <option value="shelter">Shelter</option>
+                  </select>
+                </div>
+              </div>
+            </div>
 
-            </form>
+            {/* 🔥 SUBMIT BUTTON (Updated to match CSS class 'nh-submit') */}
+            <button type="submit" className="nh-submit">
+              SUBMIT REQUEST
+            </button>
+            
           </div>
-
-        </div>
+        </form>
       </div>
     </div>
   );

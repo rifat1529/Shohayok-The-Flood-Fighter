@@ -4,9 +4,8 @@ const User = require("../models/User");
 const Mission = require("../models/Mission");
 const Conversation = require("../models/Conversation");
 const { sendAdminAlert } = require("../utils/email");
-const { Op } = require("sequelize");
 
-// 🔥 helper
+// 🔥 helper (UPDATED: village বাদ)
 const getArea = (r) => `${r.district}, ${r.subDistrict}`;
 
 // ==========================
@@ -19,21 +18,8 @@ const createGuestRequest = async (req, res) => {
     if (!name || !phone || !district || !subDistrict || !village || !trapped || !need) {
       return res.status(400).json({ message: "All guest fields required" });
     }
-    // 🔥 COUNT SAME AREA REQUESTS
-const count = await Request.count({
-  where: {
-    district: req.body.district,
-    subDistrict: req.body.subDistrict,
-    village: req.body.village,
-    status: "pending"
-  }
-});
 
-// 🔥 IF 5+ → SEND ALERT
-if (count >= 5) {
-  const area = `${req.body.district}, ${req.body.subDistrict}, ${req.body.village}`;
-  await sendAdminAlert(area, count);
-}
+    // ✅ CREATE FIRST
     const request = await Request.create({
       name,
       phone,
@@ -44,6 +30,21 @@ if (count >= 5) {
       needType: need,
       status: "pending"
     });
+
+    // 🔥 COUNT (UPDATED AREA LOGIC)
+    const count = await Request.count({
+      where: {
+        district,
+        subDistrict,
+        status: "pending"
+      }
+    });
+
+    // 🔥 SEND ONLY ONCE
+    if (count === 5) {
+      const area = `${district}, ${subDistrict}`;
+      await sendAdminAlert(area, count);
+    }
 
     return res.status(201).json({ message: "Request submitted", request });
 
@@ -63,26 +64,13 @@ const createUserRequest = async (req, res) => {
     if (!trapped || !need || !district || !subDistrict || !village) {
       return res.status(400).json({ message: "All fields required" });
     }
-    // 🔥 COUNT SAME AREA REQUESTS
-const count = await Request.count({
-  where: {
-    district: req.body.district,
-    subDistrict: req.body.subDistrict,
-    village: req.body.village,
-    status: "pending"
-  }
-});
 
-// 🔥 IF 5+ → SEND ALERT
-if (count >= 5) {
-  const area = `${req.body.district}, ${req.body.subDistrict}, ${req.body.village}`;
-  await sendAdminAlert(area, count);
-}
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // ✅ CREATE FIRST
     const request = await Request.create({
       userId: user.id,
       name: user.name,
@@ -94,6 +82,20 @@ if (count >= 5) {
       needType: need,
       status: "pending"
     });
+
+    // 🔥 COUNT (UPDATED AREA LOGIC)
+    const count = await Request.count({
+      where: {
+        district,
+        subDistrict,
+        status: "pending"
+      }
+    });
+
+    if (count === 5) {
+      const area = `${district}, ${subDistrict}`;
+      await sendAdminAlert(area, count);
+    }
 
     return res.status(201).json({ message: "Request submitted", request });
 
@@ -112,7 +114,6 @@ const getAllRequests = async (req, res) => {
       order: [["createdAt", "DESC"]]
     });
 
-    // 🔥 ALERT LOGIC
     const areaMap = {};
 
     requests
@@ -188,19 +189,16 @@ const updateRequestStatus = async (req, res) => {
         status: "approved"
       });
 
-      // 🔥 PRIVATE CHAT (User ↔ Volunteer/Admin)
       if (request.userId) {
         await Conversation.create({
           type: "private",
           participants: [request.userId, req.user.id]
         });
-
-        console.log("💬 Private chat created");
       }
 
       await request.destroy();
 
-      // 🔥 MISSION CHECK (≥3 approved)
+      // 🔥 MISSION TRIGGER
       const approvedCount = await AcceptedRequest.count({
         where: {
           district: request.district,
@@ -218,14 +216,12 @@ const updateRequestStatus = async (req, res) => {
             area,
             status: "active"
           });
-
-          console.log("🚨 Mission Created:", area);
         }
       }
 
       return res.json({
         message: "Request approved",
-        notify: "Your request has been granted. Our rescue team is on the way."
+        notify: "Rescue team is on the way"
       });
     }
 
@@ -236,7 +232,7 @@ const updateRequestStatus = async (req, res) => {
 
     return res.json({
       message: "Request declined",
-      notify: "Your request has been declined. Please try again later."
+      notify: "Please try again later"
     });
 
   } catch (err) {
@@ -245,7 +241,6 @@ const updateRequestStatus = async (req, res) => {
   }
 };
 
-// ==========================
 module.exports = {
   createGuestRequest,
   createUserRequest,
