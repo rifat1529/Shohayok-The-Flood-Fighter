@@ -24,7 +24,11 @@ const Mission = sequelize.define(
     endedAt: {
       type: DataTypes.DATE,
       allowNull: true
-    }
+    },
+    volunteerHeadId: {
+  type: DataTypes.UUID,
+  allowNull: true
+}
   },
   {
     tableName: "missions",

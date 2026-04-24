@@ -6,7 +6,7 @@ const Conversation = require("../models/Conversation");
 const { sendAdminAlert } = require("../utils/email");
 
 // 🔥 helper (UPDATED: village বাদ)
-const getArea = (r) => `${r.district}, ${r.subDistrict}`;
+const getArea = (r) => `${r.district}`;
 
 // ==========================
 // 🔹 CREATE GUEST REQUEST
@@ -207,17 +207,35 @@ const updateRequestStatus = async (req, res) => {
       });
 
       if (approvedCount >= 3) {
-        const existingMission = await Mission.findOne({
-          where: { area, status: "active" }
-        });
+  const existingMission = await Mission.findOne({
+    where: { area, status: "active" }
+  });
 
-        if (!existingMission) {
-          await Mission.create({
-            area,
-            status: "active"
-          });
-        }
+  if (!existingMission) {
+
+    // 🔥 FIND VOLUNTEER HEAD (same district)
+    const volunteerHead = await User.findOne({
+      where: {
+        role: "volunteer",
+        district: request.district
       }
+    });
+
+    if (!volunteerHead) {
+      console.log("❌ No volunteer found for district:", request.district);
+      return;
+    }
+
+    // 🔥 CREATE MISSION WITH ASSIGNMENT
+    await Mission.create({
+      area,
+      status: "active",
+      volunteerHeadId: volunteerHead.id
+    });
+
+    console.log("✅ Mission assigned to:", volunteerHead.id);
+  }
+}
 
       return res.json({
         message: "Request approved",

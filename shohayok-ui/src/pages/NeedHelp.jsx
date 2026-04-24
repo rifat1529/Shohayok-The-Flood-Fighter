@@ -2,6 +2,11 @@ import "../styles/help.css";
 import Navbar from "../components/Navbar";
 import { useState } from "react";
 import axios from "../api/axios";
+import { io } from "socket.io-client";
+const socket = io("http://localhost:5000", {
+  transports: ["websocket"]
+});
+
 
 export default function NeedHelp() {
   const [form, setForm] = useState({
@@ -13,7 +18,27 @@ export default function NeedHelp() {
     trapped: "",
     need: "rescue"
   });
+const DISTRICTS = [
+  "Dhaka",
+  "Rangpur",
+  "Chittagong",
+  "Khulna",
+  "Barisal",
+  "Sylhet",
+  "Rajshahi",
+  "Mymensingh"
+];
 
+const SUB_DISTRICTS = {
+  Dhaka: ["Dhanmondi", "Mirpur", "Uttara"],
+  Rangpur: ["Pirganj", "Badarganj", "Nilphamary"],
+  Chittagong: ["Pahartali", "Sitakunda"],
+  Khulna: ["Sonadanga", "Batiaghata"],
+  Barisal: ["Agailjhara"],
+  Sylhet: ["Beanibazar"],
+  Rajshahi: ["Godagari"],
+  Mymensingh: ["Trishal"]
+};
   const [message, setMessage] = useState("");
 
   const set = (k) => (e) =>
@@ -138,23 +163,34 @@ export default function NeedHelp() {
               <div className="input-grid">
                 <div>
                   <label className="nh-label">DISTRICT</label>
-                  <input
-                    className="nh-input"
-                    placeholder="District"
-                    value={form.district}
-                    onChange={set("district")}
-                    required
-                  />
+                  <select
+  className="nh-input"
+  value={form.district}
+  onChange={set("district")}
+>
+  <option value="">Select District</option>
+  {DISTRICTS.map((d) => (
+    <option key={d} value={d}>
+      {d}
+    </option>
+  ))}
+</select>
                 </div>
                 <div>
                   <label className="nh-label">SUB-DISTRICT</label>
-                  <input
-                    className="nh-input"
-                    placeholder="Sub District"
-                    value={form.subDistrict}
-                    onChange={set("subDistrict")}
-                    required
-                  />
+                  <select
+            className="nh-input"
+            value={form.subDistrict}
+            onChange={set("subDistrict")}
+            disabled={!form.district}
+          >
+            <option value="">Select Sub-District</option>
+            {SUB_DISTRICTS[form.district]?.map((sd) => (
+              <option key={sd} value={sd}>
+                {sd}
+              </option>
+            ))}
+          </select>
                 </div>
               </div>
               <div style={{ marginTop: "12px" }}>

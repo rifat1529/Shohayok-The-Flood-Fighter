@@ -201,46 +201,55 @@ export default function AdminDashboard() {
 
         {/* REPORTS */}
         <div className="section">
-          <p className="section-header">Reports (Pending Review)</p>
+  <p className="section-header">Reports (Pending Review)</p>
 
-          {reports.map((r) => (
-            <div key={r.id} className="request-card">
+  {reports
+    .filter((r) => r.status === "pending")
+    .map((r) => (
+      <div key={r.id} className="request-card">
 
-              {r.image && (
-                <img src={r.image} style={{ width: "100%", height: "180px", objectFit: "cover" }} />
-              )}
+        {r.image && (
+          <img
+            src={r.image}
+            style={{ width: "100%", height: "180px", objectFit: "cover" }}
+          />
+        )}
 
-              <div className="card-top">
-                <div className="avatar">📋</div>
+        <div className="card-top">
+          <div className="avatar">📋</div>
 
-                <div style={{ flex: 1 }}>
-                  <div className="card-name">{r.area}</div>
+          <div style={{ flex: 1 }}>
+            <div className="card-name">{r.area}</div>
 
-                  <div className="card-location">
-                    {r.helpType} • {r.peopleHelped} helped
-                  </div>
-
-                  <div style={{ fontSize: "13px", color: "#94a3b8", marginTop: "6px" }}>
-                    ⏱ {r.duration || "N/A"} <br />
-                    📝 {r.notes || "No notes"}
-                  </div>
-                </div>
-              </div>
-
-              {r.status === "pending" && (
-                <div className="card-actions">
-                  <button className="btn btn-confirm" onClick={() => handleApproveReport(r.id)}>
-                    ✓ Approve
-                  </button>
-
-                  <button className="btn btn-decline" onClick={() => handleReturnReport(r.id)}>
-                    ✕ Return
-                  </button>
-                </div>
-              )}
+            <div className="card-location">
+              {r.helpType} • {r.peopleHelped} helped
             </div>
-          ))}
+
+            <div style={{ fontSize: "13px", color: "#94a3b8", marginTop: "6px" }}>
+              📝 {r.notes || "No notes"}
+            </div>
+          </div>
         </div>
+
+        <div className="card-actions">
+          <button
+            className="btn btn-confirm"
+            onClick={() => handleApproveReport(r.id)}
+          >
+            ✓ Approve
+          </button>
+
+          <button
+            className="btn btn-decline"
+            onClick={() => handleReturnReport(r.id)}
+          >
+            ✕ Return
+          </button>
+        </div>
+
+      </div>
+    ))}
+</div>
 
       </div>
     </div>

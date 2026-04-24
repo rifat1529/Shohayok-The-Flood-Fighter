@@ -1,72 +1,101 @@
 import "../styles/submit.css";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // ✅ FIXED
 import Navbar from "../components/Navbar";
-import { apiRequest } from "../api/http";
 
 export default function SubmitReport() {
-  const [form, setForm] = useState({ opType: "", helped: "", support: "", notes: "" });
-  const [file, setFile] = useState(null);
+  const [form, setForm] = useState({
+    opType: "",
+    helped: "",
+    support: "",
+    notes: ""
+  });
+
+  const [files, setFiles] = useState([]); // ✅ multi file
   const [submitted, setSubmitted] = useState(false);
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const set = (k) => (e) =>
+    setForm({ ...form, [k]: e.target.value });
+
   const activeMission = JSON.parse(localStorage.getItem("activeMission"));
   const editingReport = JSON.parse(localStorage.getItem("editingReport"));
+
+  // ✅ preload edit data
   useEffect(() => {
-  if (editingReport) {
-    setForm({
-      opType: editingReport.helpType,
-      helped: editingReport.peopleHelped,
-      support: editingReport.helpType,
-      notes: editingReport.notes
-    });
-  }
-}, []);
-  const handleSubmit = async () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const token = localStorage.getItem("token");
-
-    const formData = new FormData();
-
-    formData.append("volunteerId", user.id);
-    formData.append("missionId", editingReport?.missionId || activeMission.id);
-    formData.append("area", editingReport?.area || activeMission.area);
-    formData.append("helpType", form.support.toLowerCase());
-    formData.append("peopleHelped", form.helped);
-    formData.append("notes", form.notes);
-
-    if (file) {
-      formData.append("image", file);
-    }
-
-    // 🔥 IF EDIT → UPDATE
     if (editingReport) {
-      await fetch(`http://localhost:5000/reports/${editingReport.id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      localStorage.removeItem("editingReport");
-    } 
-    // 🔥 ELSE → NEW
-    else {
-      await fetch("http://localhost:5000/reports/submit", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
+      setForm({
+        opType: editingReport.helpType,
+        helped: editingReport.peopleHelped,
+        support: editingReport.helpType,
+        notes: editingReport.notes
       });
     }
+  }, []);
 
-    setSubmitted(true);
-
-  } catch (err) {
-    alert("Failed to submit");
+  // 🔥 SAFE GUARD (VERY IMPORTANT)
+  if (!activeMission && !editingReport) {
+    return (
+      <div className="sr-root">
+        <Navbar />
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          <h2>⚠️ No Mission Found</h2>
+          <p>Please complete a mission first</p>
+        </div>
+      </div>
+    );
   }
-};
+
+  const handleSubmit = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+
+      formData.append("volunteerId", user.id);
+      formData.append(
+        "missionId",
+        editingReport?.missionId || activeMission?.id
+      );
+      formData.append(
+        "area",
+        editingReport?.area || activeMission?.area
+      );
+      formData.append("helpType", form.support.toLowerCase());
+      formData.append("peopleHelped", form.helped);
+      formData.append("notes", form.notes);
+
+      // ✅ MULTIPLE IMAGES (max 5)
+      files.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      if (editingReport) {
+        await fetch(`http://localhost:5000/reports/${editingReport.id}`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        localStorage.removeItem("editingReport");
+      } else {
+        await fetch("http://localhost:5000/reports/submit", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+      }
+
+      setSubmitted(true);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit");
+    }
+  };
 
   if (submitted) {
     return (
@@ -93,6 +122,7 @@ export default function SubmitReport() {
       <Navbar />
       <div className="sr-center">
         <div className="sr-card">
+
           <div className="sr-header">
             <div className="sr-icon">📋</div>
             <div>
@@ -102,16 +132,17 @@ export default function SubmitReport() {
           </div>
 
           <div className="sr-body">
+
             <div className="two-col">
               <div>
                 <label className="sr-label">OPERATION TYPE</label>
                 <input
                   className="sr-input"
-                  placeholder="e.g. Flood Rescue"
                   value={form.opType}
                   onChange={set("opType")}
                 />
               </div>
+
               <div>
                 <label className="sr-label">PEOPLE HELPED</label>
                 <input
@@ -138,19 +169,21 @@ export default function SubmitReport() {
               ))}
             </div>
 
-            <label className="sr-label">EVIDENCE / PHOTOS</label>
-            <div className="file-upload">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFile(e.target.files[0])}
-              />
-              <div className="file-upload-icon">📸</div>
-              <div className="file-upload-label">
-                Click to upload photo evidence
+            <label className="sr-label">EVIDENCE / PHOTOS (max 5)</label>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => setFiles([...e.target.files])}
+            />
+
+            {files.length > 0 && (
+              <div>
+                {files.map((f, i) => (
+                  <div key={i}>✓ {f.name}</div>
+                ))}
               </div>
-              {file && <div className="file-name">✓ {file.name}</div>}
-            </div>
+            )}
 
             <label className="sr-label">EXTRA NOTES</label>
             <textarea
@@ -164,6 +197,7 @@ export default function SubmitReport() {
             <button className="sr-submit" onClick={handleSubmit}>
               📤 SUBMIT REPORT
             </button>
+
           </div>
         </div>
       </div>

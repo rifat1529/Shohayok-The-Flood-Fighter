@@ -1,42 +1,69 @@
 const { Message } = require("../models");
 
+const activeMissions = {};
+const userLocations = {};
+
 const chatSocket = (io) => {
   io.on("connection", (socket) => {
-    console.log("🟢 User connected:", socket.id);
+    console.log("🟢 Connected:", socket.id);
 
-    // ✅ JOIN ROOM
+    // 🔹 JOIN ROOM
     socket.on("joinConversation", (conversationId) => {
       socket.join(conversationId);
-      console.log("Joined:", conversationId);
     });
 
-    // ✅ SEND MESSAGE
-    socket.on("sendMessage", async (data) => {
+    // 🔹 SEND MESSAGE
+    socket.on("sendMessage", async ({ conversationId, senderId, message }) => {
       try {
-        console.log("📩 Incoming:", data);
-
-        const { conversationId, senderId, message } = data;
-
-        // 🔥 save DB
         const saved = await Message.create({
           message,
           senderId,
-          ConversationId
+          ConversationId: conversationId
         });
 
-        const response = {
-          id: saved.id,
-          message: saved.message,
-          senderId: saved.senderId,
-          createdAt: saved.createdAt
-        };
-
-        // 🔥 emit to room
-        io.to(conversationId).emit("receiveMessage", response);
+        io.to(conversationId).emit("receiveMessage", saved);
 
       } catch (err) {
-        console.error("❌ ERROR:", err);
+        console.error("❌ MESSAGE ERROR:", err);
       }
+    });
+
+    // 🔹 ON DUTY
+    socket.on("on-duty", ({ missionId }) => {
+      if (!missionId) return;
+
+      activeMissions[missionId] = true;
+      console.log("🚨 ON DUTY:", missionId);
+    });
+
+    // 🔹 SEND LOCATION
+    socket.on("send-location", (data) => {
+      const { userId, lat, lng, missionId, role } = data;
+
+      if (!missionId || !activeMissions[missionId]) return;
+
+      userLocations[userId] = { lat, lng };
+
+      io.emit("receive-location", {
+        userId,
+        lat,
+        lng,
+        role,
+        missionId
+      });
+    });
+
+    // 🔹 MISSION COMPLETE
+    socket.on("mission-complete", ({ missionId }) => {
+      delete activeMissions[missionId];
+
+      io.emit("stop-tracking", { missionId });
+
+      Object.keys(userLocations).forEach((id) => {
+        delete userLocations[id];
+      });
+
+      console.log("✅ Mission completed:", missionId);
     });
 
     socket.on("disconnect", () => {

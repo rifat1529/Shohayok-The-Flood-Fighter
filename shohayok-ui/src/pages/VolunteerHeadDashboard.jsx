@@ -2,6 +2,9 @@ import "../styles/volhead.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:5000");
 
 const TEAMS = [
   { id: 1, name: "Rescue Team", emoji: "🚁", status: "Active", members: 6, color: "#ef4444", glow: "rgba(239,68,68,0.3)", progress: 80 },
@@ -14,24 +17,20 @@ export default function VolunteerHeadDashboard() {
   const [mission, setMission] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔥 FETCH MISSION
+  // 🔥 FETCH MISSION (FIXED)
   useEffect(() => {
     const fetchMission = async () => {
       try {
-         const user = JSON.parse(localStorage.getItem("user"));
-         const res = await fetch(`http://localhost:5000/reports/volunteer/${user.id}`);
-         const data = await res.json();
+        const res = await fetch(`http://localhost:5000/missions/${user.id}`);
+        const data = await res.json();
 
         if (data.length > 0) {
           setMission(data[0]);
-        }
-        else {
-        setMission(null);
+          localStorage.setItem("activeMission", JSON.stringify(data[0]));
+        } else {
+          setMission(null);
         }
       } catch (err) {
         console.error(err);
@@ -41,12 +40,29 @@ export default function VolunteerHeadDashboard() {
     fetchMission();
   }, []);
 
+  // 🔥 ON DUTY
+  const handleDutyToggle = () => {
+    const newState = !onDuty;
+    setOnDuty(newState);
+
+    if (newState && mission) {
+      socket.emit("on-duty", {
+        missionId: mission.id
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
   return (
     <div className="vhd-root">
       <Navbar />
       <div className="vhd-container">
 
-        {/* Header */}
+        {/* HEADER */}
         <div className="vhd-top">
           <div>
             <p className="vhd-eyebrow">// FIELD COMMAND</p>
@@ -54,11 +70,9 @@ export default function VolunteerHeadDashboard() {
           </div>
 
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            
-            {/* Duty Toggle */}
             <div
               className={`duty-toggle ${onDuty ? "on" : ""}`}
-              onClick={() => setOnDuty(!onDuty)}
+              onClick={handleDutyToggle}
             >
               <div className="duty-dot" />
               <span className="duty-text">ON DUTY</span>
@@ -73,78 +87,70 @@ export default function VolunteerHeadDashboard() {
           </div>
         </div>
 
-        {/* 🔥 MISSION ALERT */}
+        {/* 🔥 MISSION */}
         {mission && (
           <div className="mission-alert">
             <div className="mission-alert-icon">🚨</div>
             <div>
-              <p className="mission-alert-label">NEW MISSION ASSIGNED</p>
+              <p className="mission-alert-label">MISSION ASSIGNED</p>
               <p className="mission-alert-title">
-                {mission.area} Relief Operation
+                {mission.area}
               </p>
-
-              <div className="mission-tags">
-                <span className="mission-tag tag-r">Rescue</span>
-                <span className="mission-tag tag-m">Medicine</span>
-                <span className="mission-tag tag-n">Active</span>
-              </div>
             </div>
           </div>
         )}
 
-        {/* 🔥 ACTION BUTTONS */}
+        {/* ACTIONS */}
         {mission && (
           <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
             
-            {/* Submit Report */}
             <button
               className="logout-btn"
               onClick={() => navigate("/submit-report")}
             >
               📋 Submit Report
             </button>
+
             <button
-  className="logout-btn"
-  onClick={() => {
-    localStorage.setItem("editingReport", JSON.stringify(mission));
-    navigate("/submit-report");
-  }}
->
-  ✏️ Fix Report
-</button>
+              className="logout-btn"
+              style={{ background: "#ef4444" }}
+              onClick={() => {
+  setOnDuty(false);
 
-            {/* Complete Mission */}
-            <button
-  className="logout-btn"
-  style={{ background: "#ef4444" }}
-  onClick={() => {
-    setOnDuty(false);
+  socket.emit("mission-complete", {
+    missionId: mission.id
+  });
 
-    // 🔥 current mission save for report page
-    localStorage.setItem("activeMission", JSON.stringify(mission));
+  setMission(null);
 
-    // 🔥 remove mission from dashboard
-    setMission(null);
-
-    // 🔥 redirect to submit report
-    navigate("/submit-report");
-  }}
->
-  ✅ Complete Mission
-</button>
+  // 🔥 ADD THIS
+  navigate("/submit-report");
+}}
+            >
+              ✅ Complete Mission
+            </button>
 
           </div>
         )}
 
-        {/* Map */}
+        {/* MAP */}
         <div className="map-zone">
           <span className="map-badge">LIVE TEAM TRACKING</span>
 
           {onDuty ? (
-            <div className="map-overlay-label tracking-active">
-              <div className="tracking-pulse" />
-              GPS TRACKING ACTIVE
-            </div>
+            <>
+              <div className="map-overlay-label tracking-active">
+                GPS TRACKING ACTIVE
+              </div>
+
+              <button
+                className="logout-btn"
+                style={{ marginTop: "15px" }}
+                onClick={() => navigate("/map")}
+              >
+                🗺️ Open Live Map
+              </button>
+            </>
           ) : (
             <div className="map-overlay-label tracking-inactive">
               TURN ON DUTY TO ENABLE TRACKING
@@ -152,7 +158,7 @@ export default function VolunteerHeadDashboard() {
           )}
         </div>
 
-        {/* Teams */}
+        {/* TEAMS */}
         <div className="vhd-grid">
           {TEAMS.map((t) => (
             <div key={t.id} className="team-card">
@@ -160,7 +166,7 @@ export default function VolunteerHeadDashboard() {
                 <div className="tc-emoji">{t.emoji}</div>
                 <div>
                   <div className="tc-name">{t.name}</div>
-                  <div className="tc-members">👥 {t.members} members</div>
+                  <div className="tc-members">👥 {t.members}</div>
                 </div>
                 <span className={`tc-status ${t.status.toLowerCase()}`}>
                   {t.status}
@@ -172,8 +178,7 @@ export default function VolunteerHeadDashboard() {
                   className="tc-bar-fill"
                   style={{
                     width: `${t.progress}%`,
-                    background: t.color,
-                    boxShadow: `0 0 8px ${t.glow}`
+                    background: t.color
                   }}
                 />
               </div>

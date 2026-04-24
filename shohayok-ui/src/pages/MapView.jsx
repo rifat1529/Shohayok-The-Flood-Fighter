@@ -1,77 +1,141 @@
-import "../styles/map.css";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
+import mapboxgl from "mapbox-gl";
+import { io } from "socket.io-client";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+
+const MAX_LOAD = 50;
+
+// 🔥 single socket (lazy connect)
+let socket;
 
 export default function MapView() {
-  const [active, setActive] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const mapRef = useRef(null);
+  const containerRef = useRef(null);
+  const markers = useRef({});
+  const [blocked, setBlocked] = useState(false);
+  const [loads, setLoads] = useState(0);
 
-  // 🔐 user check (optional safety)
-  const user = JSON.parse(localStorage.getItem("user"));
+  useEffect(() => {
+    let currentLoads = Number(localStorage.getItem("map_loads") || 0);
 
-  if (!user) {
-    return <div style={{ padding: "20px" }}>Please login to view map</div>;
+    // 🔥 check আগে
+    if (currentLoads >= MAX_LOAD) {
+      setBlocked(true);
+      return;
+    }
+
+    // 🔥 increment safe way
+    currentLoads++;
+    localStorage.setItem("map_loads", currentLoads);
+    setLoads(currentLoads);
+
+    console.log("🧭 Map Loads:", currentLoads);
+
+    // 🔥 create socket only when needed
+    socket = io("http://localhost:5000", {
+      transports: ["websocket"],
+    });
+
+    // 🔥 prevent multiple map init
+    if (mapRef.current) return;
+
+    mapRef.current = new mapboxgl.Map({
+      container: containerRef.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [90.4125, 23.8103],
+      zoom: 8
+    });
+
+    // 🔥 receive location
+    socket.on("receive-location", ({ userId, lat, lng, role }) => {
+  let color = "gray";
+  let label = "Unknown";
+
+  if (role === "volunteer") {
+    color = "blue";
+    label = "Volunteer 🚑";
+  } else if (role === "user") {
+    color = "red";
+    label = "User 🆘";
+  } else if (role === "head") {
+    color = "green";
+    label = "Team Lead 🧭";
   }
 
-  const PINS = [
-    { id: 1, x: 38, y: 42, label: "Sunamganj", type: "rescue", count: 14 },
-    { id: 2, x: 55, y: 30, label: "Sylhet", type: "food", count: 8 },
-    { id: 3, x: 62, y: 58, label: "Habiganj", type: "medicine", count: 5 },
-    { id: 4, x: 28, y: 65, label: "Netrokona", type: "rescue", count: 11 },
-  ];
+  // 🔥 update existing marker
+  if (markers.current[userId]) {
+    markers.current[userId].setLngLat([lng, lat]);
+  } else {
+    const el = document.createElement("div");
+    el.style.width = "12px";
+    el.style.height = "12px";
+    el.style.borderRadius = "50%";
+    el.style.background = color;
+    el.style.border = "2px solid white";
 
-  const TYPE_COLOR = {
-    rescue: { bg: "#ef4444", glow: "rgba(239,68,68,0.4)", label: "Rescue" },
-    food: { bg: "#f59e0b", glow: "rgba(245,158,11,0.4)", label: "Food" },
-    medicine: { bg: "#3b82f6", glow: "rgba(59,130,246,0.4)", label: "Medicine" },
-  };
+    const marker = new mapboxgl.Marker(el)
+      .setLngLat([lng, lat])
+      .setPopup(
+        new mapboxgl.Popup().setHTML(
+          `<b>${label}</b><br/>ID: ${userId.slice(0, 6)}`
+        )
+      )
+      .addTo(mapRef.current);
 
-  const filtered =
-    filter === "all" ? PINS : PINS.filter((p) => p.type === filter);
+    markers.current[userId] = marker;
+  }
+});
 
-  return (
-    <div className="map-root">
-      <Navbar />
+    socket.on("stop-tracking", () => {
+      Object.values(markers.current).forEach((m) => m.remove());
+      markers.current = {};
+    });
 
-      <div className="map-container">
-        <h2>Live Map View</h2>
+    // 🔥 cleanup
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
 
-        <div className="filter-row">
-          {["all", "rescue", "food", "medicine"].map((f) => (
-            <button key={f} onClick={() => setFilter(f)}>
-              {f.toUpperCase()}
-            </button>
-          ))}
-        </div>
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
 
-        <div className="map-frame">
-          {filtered.map((pin) => {
-            const c = TYPE_COLOR[pin.type];
-
-            return (
-              <div
-                key={pin.id}
-                className="map-pin"
-                style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
-                onClick={() =>
-                  setActive(active?.id === pin.id ? null : pin)
-                }
-              >
-                <div
-                  className="pin-dot"
-                  style={{ background: c.bg }}
-                />
-
-                {active?.id === pin.id && (
-                  <div className="pin-tooltip">
-                    {pin.label} ({pin.count})
-                  </div>
-                )}
-              </div>
-            );
-          })}
+  // 🔥 BLOCK UI
+  if (blocked) {
+    return (
+      <div>
+        <Navbar />
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          <h2>🚫 Map Disabled</h2>
+          <p>Usage limit reached (50 loads)</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div>
+      <Navbar />
+
+      {/* 🔥 usage indicator */}
+      <p style={{
+        position: "absolute",
+        top: 10,
+        left: 10,
+        color: "white",
+        zIndex: 10
+      }}>
+        🧭 Loads: {loads}
+      </p>
+
+      <div ref={containerRef} style={{ height: "90vh" }} />
     </div>
   );
 }
