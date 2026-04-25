@@ -62,12 +62,47 @@ const Report = sequelize.define(
     status: {
       type: DataTypes.ENUM("pending", "approved", "returned"),
       defaultValue: "pending"
-    }
+    },
+    totalRequests: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+},
+
+acceptedRequests: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+},
+
+totalPeopleRequested: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+},
+
+peopleHelped: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+},
+
+rescueCount: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+},
+
+foodCount: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+},
+
+medicineCount: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0
+}
   },
   {
     tableName: "reports",
     timestamps: true
   }
+  
 );
 
 module.exports = Report;

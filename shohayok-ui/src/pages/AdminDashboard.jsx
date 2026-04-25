@@ -2,7 +2,7 @@ import "../styles/admin.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import axios from "../api/axios"; // 🔥 USE AXIOS ONLY
+import axios from "../api/axios";
 
 export default function AdminDashboard() {
   const [requests, setRequests] = useState([]);
@@ -11,6 +11,15 @@ export default function AdminDashboard() {
   const [missions, setMissions] = useState([]);
   const navigate = useNavigate();
 
+  // 🔥 TOKEN CHECK
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+    }
+  }, []);
+
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
@@ -18,14 +27,14 @@ export default function AdminDashboard() {
 
   const mapItem = (r) => ({
     id: r.id,
-    name: r.name || "Registered User",
-    location: `${r.district}, ${r.subDistrict}, ${r.village}`,
-    trapped: r.peopleCount,
-    need: r.needType,
+    name: r.name || "User",
+    location: `${r.district || ""}, ${r.subDistrict || ""}, ${r.village || ""}`,
+    trapped: r.peopleCount || 0,
+    need: r.needType || "unknown",
     status: r.status
   });
 
-  // 🔥 FETCH ALL DATA
+  // 🔥 FETCH DATA SAFE WAY
   const fetchRequests = async () => {
     try {
       const [reqRes, acceptedRes, missionRes, reportRes] = await Promise.all([
@@ -35,20 +44,28 @@ export default function AdminDashboard() {
         axios.get("/reports")
       ]);
 
-      const pending = reqRes.data.requests || [];
-      const alertData = reqRes.data.alerts || [];
+      console.log("REPORT DATA:", reportRes.data);
+
+      const pending = reqRes.data?.requests || [];
+      const alertData = reqRes.data?.alerts || [];
 
       setAlerts(alertData);
-      setMissions(missionRes.data);
-      setReports(reportRes.data);
+      setMissions(missionRes.data || []);
+      setReports(reportRes.data || []);
 
       setRequests([
-        ...acceptedRes.data.map(mapItem),
+        ...(acceptedRes.data || []).map(mapItem),
         ...pending.map(mapItem)
       ]);
 
     } catch (err) {
-      console.error("FETCH ERROR:", err.response?.data || err.message);
+      console.error("❌ FETCH ERROR:", err.response?.data || err.message);
+
+      if (err.response?.status === 401) {
+        alert("Session expired. Login again.");
+        localStorage.clear();
+        navigate("/login");
+      }
     }
   };
 
@@ -56,35 +73,31 @@ export default function AdminDashboard() {
     fetchRequests();
   }, []);
 
-  // 🔥 HANDLE REQUEST APPROVE / DECLINE
+  // 🔥 REQUEST ACTION
   const handleRequest = async (id, action) => {
     try {
-      await axios.patch(`/requests/${id}/status`, {
-        status: action
-      });
-
+      await axios.patch(`/requests/${id}/status`, { status: action });
       fetchRequests();
-    } catch (err) {
+    } catch {
       alert("Failed to update request");
     }
   };
 
-  // 🔥 APPROVE REPORT
+  // 🔥 REPORT ACTIONS
   const handleApproveReport = async (id) => {
     try {
       await axios.patch(`/reports/${id}/approve`);
       fetchRequests();
-    } catch (err) {
+    } catch {
       alert("Failed to approve report");
     }
   };
 
-  // 🔥 RETURN REPORT
   const handleReturnReport = async (id) => {
     try {
       await axios.patch(`/reports/${id}/return`);
       fetchRequests();
-    } catch (err) {
+    } catch {
       alert("Failed to return report");
     }
   };
@@ -97,7 +110,7 @@ export default function AdminDashboard() {
 
       <div className="admin-container">
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
           <h1 className="page-heading">Admin Dashboard</h1>
 
           <button className="logout-btn" onClick={handleLogout}>
@@ -106,31 +119,25 @@ export default function AdminDashboard() {
         </div>
 
         {/* ALERT */}
-        {alerts.length > 0 ? (
-          <div className="emergency-banner">
-            <div className="emergency-pulse">🚨</div>
-            <div>
-              <p className="emergency-label">EMERGENCY ALERT</p>
-              <p className="emergency-area">{alerts[0].area}</p>
-            </div>
-            <div className="emergency-count">
-              <p className="lbl">Requests</p>
-              <div className="num">{alerts[0].count}</div>
-            </div>
+        <div className="emergency-banner">
+          <div className="emergency-pulse">
+            {alerts.length > 0 ? "🚨" : "✅"}
           </div>
-        ) : (
-          <div className="emergency-banner">
-            <div className="emergency-pulse">✅</div>
-            <div>
-              <p className="emergency-label">NO ACTIVE ALERT</p>
-              <p className="emergency-area">All areas stable</p>
-            </div>
-            <div className="emergency-count">
-              <p className="lbl">Requests</p>
-              <div className="num">0</div>
-            </div>
+
+          <div>
+            <p className="emergency-label">
+              {alerts.length > 0 ? "EMERGENCY ALERT" : "NO ACTIVE ALERT"}
+            </p>
+            <p className="emergency-area">
+              {alerts[0]?.area || "All areas stable"}
+            </p>
           </div>
-        )}
+
+          <div className="emergency-count">
+            <p className="lbl">Requests</p>
+            <div className="num">{alerts[0]?.count || 0}</div>
+          </div>
+        </div>
 
         {/* MISSION */}
         {missions.length > 0 && (
@@ -139,10 +146,6 @@ export default function AdminDashboard() {
             <div>
               <p className="emergency-label">ACTIVE MISSION</p>
               <p className="emergency-area">{missions[0].area}</p>
-            </div>
-            <div className="emergency-count">
-              <p className="lbl">Status</p>
-              <div className="num">ACTIVE</div>
             </div>
           </div>
         )}
@@ -155,7 +158,6 @@ export default function AdminDashboard() {
             <p className="emergency-area">All Areas</p>
           </div>
           <div className="emergency-count">
-            <p className="lbl">Requests</p>
             <div className="num">{emergencyCount}</div>
           </div>
         </div>
@@ -165,32 +167,27 @@ export default function AdminDashboard() {
           <p className="section-header">Help Requests</p>
 
           {requests.map((r) => (
-            <div key={r.id} className={`request-card ${r.status !== "pending" ? r.status : ""}`}>
+            <div key={r.id} className="request-card">
               <div className="card-top">
-                <div className="avatar">{r.name ? r.name[0] : "U"}</div>
+                <div className="avatar">{r.name[0]}</div>
 
                 <div style={{ flex: 1 }}>
                   <div className="card-name">{r.name}</div>
                   <div className="card-location">{r.location}</div>
 
                   <div className="card-tags">
-                    <span className={`tag tag-${r.need.toLowerCase()}`}>
-                      {r.need}
-                    </span>
-                    <span className="tag tag-people">
-                      👥 {r.trapped} trapped
-                    </span>
+                    <span className="tag">{r.need}</span>
+                    <span className="tag">👥 {r.trapped}</span>
                   </div>
                 </div>
               </div>
 
               {r.status === "pending" && (
                 <div className="card-actions">
-                  <button className="btn btn-confirm" onClick={() => handleRequest(r.id, "approved")}>
+                  <button onClick={() => handleRequest(r.id, "approved")}>
                     ✓ Confirm
                   </button>
-
-                  <button className="btn btn-decline" onClick={() => handleRequest(r.id, "declined")}>
+                  <button onClick={() => handleRequest(r.id, "declined")}>
                     ✕ Decline
                   </button>
                 </div>
@@ -201,55 +198,59 @@ export default function AdminDashboard() {
 
         {/* REPORTS */}
         <div className="section">
-  <p className="section-header">Reports (Pending Review)</p>
+          <p className="section-header">Reports (Pending)</p>
 
-  {reports
-    .filter((r) => r.status === "pending")
-    .map((r) => (
-      <div key={r.id} className="request-card">
+          {reports.filter(r => r.status === "pending").length === 0 && (
+            <p>No reports yet</p>
+          )}
 
-        {r.image && (
-          <img
-            src={r.image}
-            style={{ width: "100%", height: "180px", objectFit: "cover" }}
-          />
-        )}
+          {reports
+            .filter(r => r.status === "pending")
+            .map((r) => (
+              <div key={r.id} className="request-card">
 
-        <div className="card-top">
-          <div className="avatar">📋</div>
+                {r.image && (
+                  <img
+                    src={r.image}
+                    style={{ width: "100%", height: "180px", objectFit: "cover" }}
+                  />
+                )}
+                <div style={{ marginTop: "10px", fontSize: "14px" }}>
+  📊 Requests: {r.totalRequests} <br />
+  ✅ Accepted: {r.acceptedRequests} <br />
+  👥 Needed: {r.totalPeopleRequested} <br />
+  ❤️ Helped: {r.peopleHelped} <br />
 
-          <div style={{ flex: 1 }}>
-            <div className="card-name">{r.area}</div>
+  <hr />
 
-            <div className="card-location">
-              {r.helpType} • {r.peopleHelped} helped
-            </div>
-
-            <div style={{ fontSize: "13px", color: "#94a3b8", marginTop: "6px" }}>
-              📝 {r.notes || "No notes"}
-            </div>
-          </div>
-        </div>
-
-        <div className="card-actions">
-          <button
-            className="btn btn-confirm"
-            onClick={() => handleApproveReport(r.id)}
-          >
-            ✓ Approve
-          </button>
-
-          <button
-            className="btn btn-decline"
-            onClick={() => handleReturnReport(r.id)}
-          >
-            ✕ Return
-          </button>
-        </div>
-
-      </div>
-    ))}
+  🚁 Rescue: {r.rescueCount} <br />
+  🍱 Food: {r.foodCount} <br />
+  💊 Medicine: {r.medicineCount}
 </div>
+                <div className="card-top">
+                  <div className="avatar">📋</div>
+
+                  <div style={{ flex: 1 }}>
+                    <div className="card-name">{r.area}</div>
+                    <div className="card-location">
+                      {r.helpType} • {r.peopleHelped}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-actions">
+                  <button onClick={() => handleApproveReport(r.id)}>
+                    ✓ Approve
+                  </button>
+
+                  <button onClick={() => handleReturnReport(r.id)}>
+                    ✕ Return
+                  </button>
+                </div>
+
+              </div>
+            ))}
+        </div>
 
       </div>
     </div>

@@ -3,16 +3,15 @@ const router = express.Router();
 
 const Report = require("../models/Report");
 const Mission = require("../models/Mission");
+const Request = require("../models/Request"); 
 const upload = require("../middleware/upload");
 const cloudinary = require("../config/cloudinary");
-const { Op } = require("sequelize");
+
 // ==========================
-// 🔹 SUBMIT REPORT (Volunteer)
+// 🔹 SUBMIT REPORT (MULTIPLE IMAGE)
 // ==========================
-router.post("/submit", upload.single("image"), async (req, res) => {
+router.post("/submit", upload.array("images", 5), async (req, res) => {
   try {
-    console.log("FILE:", req.file);   // ✅
-    console.log("BODY:", req.body);  
     const {
       volunteerId,
       missionId,
@@ -22,11 +21,14 @@ router.post("/submit", upload.single("image"), async (req, res) => {
       notes
     } = req.body;
 
+    // 🔥 SINGLE IMAGE FIX
     let imageUrl = null;
 
-    if (req.file) {
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+
       const result = await cloudinary.uploader.upload(
-        `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+        `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
         {
           folder: "shohayok-reports"
         }
@@ -35,27 +37,64 @@ router.post("/submit", upload.single("image"), async (req, res) => {
       imageUrl = result.secure_url;
     }
 
+    // 🔥 ANALYTICS CALCULATION
+    const district = area.split(",")[0].trim();
+
+    const requests = await Request.findAll({
+      where: { district }
+    });
+
+    const totalRequests = requests.length;
+
+    const acceptedRequests = requests.filter(
+      (r) => r.status === "accepted"
+    ).length;
+
+    const totalPeopleRequested = requests.reduce(
+      (sum, r) => sum + (r.peopleCount || 0),
+      0
+    );
+
+    let rescueCount = 0;
+    let foodCount = 0;
+    let medicineCount = 0;
+
+    requests.forEach((r) => {
+      if (r.needType === "rescue") rescueCount += r.peopleCount || 0;
+      if (r.needType === "food") foodCount += r.peopleCount || 0;
+      if (r.needType === "medicine") medicineCount += r.peopleCount || 0;
+    });
+
+    // 🔥 CREATE REPORT
     const report = await Report.create({
       volunteerId,
       missionId,
       area,
       helpType,
-      peopleHelped,
-      image: imageUrl,
+      peopleHelped: peopleHelped || 0,
       notes,
-      status: "pending"
+      image: imageUrl,
+      status: "pending",
+
+      totalRequests,
+      acceptedRequests,
+      totalPeopleRequested,
+
+      rescueCount,
+      foodCount,
+      medicineCount
     });
 
     res.json({ message: "Report submitted", report });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed" });
+    console.error("❌ REPORT ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
 // ==========================
-// 🔹 GET ALL REPORTS (Admin)
+// 🔹 GET ALL REPORTS
 // ==========================
 router.get("/", async (req, res) => {
   try {
@@ -66,33 +105,29 @@ router.get("/", async (req, res) => {
     res.json(reports);
 
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Failed to fetch reports" });
   }
 });
 
 // ==========================
-// 🔹 GET APPROVED REPORTS (Home)
+// 🔹 GET APPROVED REPORTS
 // ==========================
 router.get("/approved", async (req, res) => {
   try {
     const reports = await Report.findAll({
-      where: { status: "approved" }, // ✅ IMPORTANT FIX
+      where: { status: "approved" },
       order: [["createdAt", "DESC"]]
     });
 
     res.json(reports);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch approved reports" });
+    res.status(500).json({ message: "Failed" });
   }
 });
 
-
-
 // ==========================
-// 🔹 RETURN FOR CORRECTION
+// 🔹 APPROVE REPORT
 // ==========================
 router.patch("/:id/approve", async (req, res) => {
   try {
@@ -112,83 +147,29 @@ router.patch("/:id/approve", async (req, res) => {
       }
     );
 
-    res.json({ message: "Report approved & mission completed" });
+    res.json({ message: "Approved" });
 
   } catch (err) {
-    res.status(500).json({ message: "Failed to approve report" });
+    res.status(500).json({ message: "Failed" });
   }
 });
 
+// ==========================
+// 🔹 RETURN REPORT
+// ==========================
 router.patch("/:id/return", async (req, res) => {
   try {
-    console.log("🔥 RETURN ROUTE HIT"); // debug
-
     const report = await Report.findByPk(req.params.id);
 
     if (!report) return res.status(404).json({ message: "Not found" });
 
     await report.update({ status: "returned" });
 
-    res.json({ message: "Returned successfully" });
+    res.json({ message: "Returned" });
 
   } catch (err) {
-    res.status(500).json({ message: "Failed to return report" });
-  }
-});
-// ==========================
-// 🔹 GET VOLUNTEER REPORTS
-// ==========================
-router.get("/volunteer/:id", async (req, res) => {
-  try {
-    const reports = await Report.findAll({
-      where: {
-        volunteerId: req.params.id,
-        status: ["pending", "returned"] // 🔥 ONLY SHOW THESE
-      },
-      order: [["createdAt", "DESC"]]
-    });
-
-    res.json(reports);
-
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch volunteer reports" });
+    res.status(500).json({ message: "Failed" });
   }
 });
 
-router.patch("/:id", upload.single("image"), async (req, res) => {
-  try {
-    const report = await Report.findByPk(req.params.id);
-
-    if (!report) return res.status(404).json({ message: "Not found" });
-
-    const {
-      helpType,
-      peopleHelped,
-      notes
-    } = req.body;
-
-    let imageUrl = report.image;
-
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(
-        `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
-      );
-
-      imageUrl = result.secure_url;
-    }
-
-    await report.update({
-      helpType,
-      peopleHelped,
-      notes,
-      image: imageUrl,
-      status: "pending" // 🔥 BACK TO REVIEW
-    });
-
-    res.json({ message: "Report updated" });
-
-  } catch (err) {
-    res.status(500).json({ message: "Failed to update report" });
-  }
-});
 module.exports = router;

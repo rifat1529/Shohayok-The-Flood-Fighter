@@ -34,7 +34,7 @@ chatSocket(io);
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log("✅ Models synced");
 
     // ❗ app.listen না, server.listen
