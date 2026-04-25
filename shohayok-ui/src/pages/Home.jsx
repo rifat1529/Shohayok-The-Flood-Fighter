@@ -8,14 +8,50 @@ export default function Home() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // ✅ DELETE FUNCTION (OUTSIDE useEffect)
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure to delete this report?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`http://localhost:5000/reports/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Delete failed");
+        return;
+      }
+
+      setReports(prev => prev.filter(r => r.id !== id));
+
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting report");
+    }
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
       try {
         const res = await fetch("http://localhost:5000/reports/approved");
         const data = await res.json();
-        setReports(data);
+
+        if (Array.isArray(data)) {
+          setReports(data);
+        } else {
+          console.error("Invalid response:", data);
+          setReports([]);
+        }
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -30,13 +66,12 @@ export default function Home() {
     <>
       <Navbar />
 
-      {/* 🔥 USER LOCATION TRACKER */}
+      {/* USER TRACKING */}
       {currentUser?.role === "user" && <UserTracker />}
 
       <div className="home-root">
         <div className="home-container">
 
-          {/* HERO */}
           <header className="hero">
             <div className="hero-content">
               <span style={{ color: "#ef4444" }}>
@@ -57,7 +92,6 @@ export default function Home() {
             </div>
           </header>
 
-          {/* POSTS */}
           <h2>Latest Operations</h2>
 
           <div className="reports-grid">
@@ -74,11 +108,18 @@ export default function Home() {
                       r.image ||
                       "https://images.unsplash.com/photo-1547683905-f686c993aae5"
                     }
-                    alt={r.area}
+                    alt={r.district}
                   />
 
+                  {/* ✅ ADMIN DELETE BUTTON */}
+                  {currentUser?.role === "admin" && (
+                    <button onClick={() => handleDelete(r.id)}>
+                      🗑 Delete
+                    </button>
+                  )}
+
                   <div className="report-body">
-                    <h3>{r.area}</h3>
+                    <h3>{r.district}</h3>
 
                     <div style={{
                       display: "flex",
@@ -91,8 +132,20 @@ export default function Home() {
                       </span>
 
                       <span style={{ color: "#4ade80" }}>
-                        +{r.peopleHelped} helped
+                        ❤️ {r.peopleHelped || 0} helped
                       </span>
+                    </div>
+
+                    <div style={{ marginTop: "10px", fontSize: "13px" }}>
+                      📊 Requests: {r.totalRequests || 0} <br />
+                      ✅ Accepted: {r.acceptedRequests || 0} <br />
+                      👥 Needed: {r.totalPeopleRequested || 0}
+                    </div>
+
+                    <div style={{ marginTop: "8px", fontSize: "13px" }}>
+                      🚁 Rescue: {r.rescueCount || 0} <br />
+                      🍱 Food: {r.foodCount || 0} <br />
+                      💊 Medicine: {r.medicineCount || 0}
                     </div>
 
                     <div style={{ marginTop: "8px" }}>
@@ -100,14 +153,13 @@ export default function Home() {
                         {r.helpType}
                       </span>
                     </div>
-
                   </div>
+
                 </div>
               ))
             )}
           </div>
 
-          {/* USER SOS */}
           {currentUser?.role === "user" && (
             <section className="sos-banner">
               <div>
@@ -115,10 +167,7 @@ export default function Home() {
                 <p>Teams are tracking in real-time.</p>
               </div>
 
-              <Link
-                to="/need-help"
-                className="btn-emergency"
-              >
+              <Link to="/need-help" className="btn-emergency">
                 GET HELP NOW
               </Link>
             </section>

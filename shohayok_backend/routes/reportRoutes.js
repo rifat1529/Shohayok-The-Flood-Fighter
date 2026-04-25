@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
-
+const authenticate = require("../middleware/authenticate");
+const authorize = require("../middleware/authorize");
 const Report = require("../models/Report");
 const Mission = require("../models/Mission");
 const Request = require("../models/Request"); 
 const upload = require("../middleware/upload");
 const cloudinary = require("../config/cloudinary");
-
+const { Op } = require("sequelize");
 // ==========================
 // 🔹 SUBMIT REPORT (MULTIPLE IMAGE)
 // ==========================
@@ -15,7 +16,7 @@ router.post("/submit", upload.array("images", 5), async (req, res) => {
     const {
       volunteerId,
       missionId,
-      area,
+      district,
       helpType,
       peopleHelped,
       notes
@@ -38,16 +39,21 @@ router.post("/submit", upload.array("images", 5), async (req, res) => {
     }
 
     // 🔥 ANALYTICS CALCULATION
-    const district = area.split(",")[0].trim();
+  
 
-    const requests = await Request.findAll({
-      where: { district }
-    });
 
-    const totalRequests = requests.length;
+const districtName = String(district || "").toLowerCase();
+const requests = await Request.findAll({
+   where: {
+    district: {
+      [Op.like]: `%${districtName}%`
+    }
+  }
+});
+const totalRequests = requests.length;
 
     const acceptedRequests = requests.filter(
-      (r) => r.status === "accepted"
+      (r) => r.status === "approved"
     ).length;
 
     const totalPeopleRequested = requests.reduce(
@@ -69,7 +75,7 @@ router.post("/submit", upload.array("images", 5), async (req, res) => {
     const report = await Report.create({
       volunteerId,
       missionId,
-      area,
+      district: district,
       helpType,
       peopleHelped: peopleHelped || 0,
       notes,
@@ -171,5 +177,23 @@ router.patch("/:id/return", async (req, res) => {
     res.status(500).json({ message: "Failed" });
   }
 });
+// 🔥 DELETE REPORT (ADMIN ONLY)
+// middleware/authorize.js already থাকলে use করো
+router.delete("/:id", authenticate, authorize("admin"), async (req, res) => {
+  try {
+    const report = await Report.findByPk(req.params.id);
 
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    await report.destroy();
+
+    res.json({ message: "Report deleted successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete report" });
+  }
+});
 module.exports = router;

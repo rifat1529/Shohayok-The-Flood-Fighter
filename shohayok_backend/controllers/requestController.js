@@ -196,7 +196,7 @@ const updateRequestStatus = async (req, res) => {
         });
       }
 
-      await request.destroy();
+      await request.update({ status: "approved" });
 
       // 🔥 MISSION TRIGGER
       const approvedCount = await AcceptedRequest.count({

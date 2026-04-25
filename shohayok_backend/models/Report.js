@@ -22,8 +22,8 @@ const Report = sequelize.define(
       allowNull: false
     },
 
-    // 🔹 Area (easy access)
-    area: {
+    // 🔹 district (easy access)
+    district: {
       type: DataTypes.STRING,
       allowNull: false
     },

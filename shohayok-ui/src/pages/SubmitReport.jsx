@@ -1,5 +1,5 @@
 import "../styles/submit.css";
-import { useState, useEffect } from "react"; // ✅ FIXED
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 
 export default function SubmitReport() {
@@ -10,7 +10,7 @@ export default function SubmitReport() {
     notes: ""
   });
 
-  const [files, setFiles] = useState([]); // ✅ multi file
+  const [files, setFiles] = useState([]);
   const [submitted, setSubmitted] = useState(false);
 
   const set = (k) => (e) =>
@@ -19,7 +19,6 @@ export default function SubmitReport() {
   const activeMission = JSON.parse(localStorage.getItem("activeMission"));
   const editingReport = JSON.parse(localStorage.getItem("editingReport"));
 
-  // ✅ preload edit data
   useEffect(() => {
     if (editingReport) {
       setForm({
@@ -31,7 +30,6 @@ export default function SubmitReport() {
     }
   }, []);
 
-  // 🔥 SAFE GUARD (VERY IMPORTANT)
   if (!activeMission && !editingReport) {
     return (
       <div className="sr-root">
@@ -49,50 +47,65 @@ export default function SubmitReport() {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = localStorage.getItem("token");
 
+      if (!form.support || !form.helped) {
+        alert("Please fill all required fields");
+        return;
+      }
+
       const formData = new FormData();
+
+      const missionArea =
+        editingReport?.district || activeMission?.district || activeMission?.area ;
+
+      if (!missionArea) {
+        alert("Mission area missing");
+        return;
+      }
 
       formData.append("volunteerId", user.id);
       formData.append(
         "missionId",
         editingReport?.missionId || activeMission?.id
       );
-      formData.append(
-        "area",
-        editingReport?.area || activeMission?.area
-      );
+
+      // ✅ FIX: send BOTH
+      formData.append("district", missionArea);
+     
+
       formData.append("helpType", form.support.toLowerCase());
       formData.append("peopleHelped", form.helped);
-      formData.append("notes", form.notes);
+      formData.append("notes", form.notes || "");
 
-      // ✅ MULTIPLE IMAGES (max 5)
-      files.forEach((file) => {
+      files.slice(0, 5).forEach((file) => {
         formData.append("images", file);
       });
 
-      if (editingReport) {
-        await fetch(`http://localhost:5000/reports/${editingReport.id}`, {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        });
+      const url = editingReport
+        ? `http://localhost:5000/reports/${editingReport.id}`
+        : "http://localhost:5000/reports/submit";
 
-        localStorage.removeItem("editingReport");
-      } else {
-        await fetch("http://localhost:5000/reports/submit", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        });
+      const method = editingReport ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data);
+        alert(data.error || data.message || "Submit failed");
+        return;
       }
 
       setSubmitted(true);
 
     } catch (err) {
-      console.error(err);
+      console.error("❌ SUBMIT ERROR:", err);
       alert("Failed to submit");
     }
   };
@@ -179,7 +192,7 @@ export default function SubmitReport() {
 
             {files.length > 0 && (
               <div>
-                {files.map((f, i) => (
+                {files.slice(0, 5).map((f, i) => (
                   <div key={i}>✓ {f.name}</div>
                 ))}
               </div>
