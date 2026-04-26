@@ -17,6 +17,16 @@ const socket = io("http://localhost:5000", {
 // ==========================
 socket.on("connect", () => {
   console.log("🟢 Connected to socket:", socket.id);
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  if (user?.id) socket.emit("register-user", user);
+});
+
+// 🔥 ADD THIS
+socket.on("register-user", (user) => {
+  if (user?.id) {
+    socket.join(user.id);
+    console.log("✅ User joined room:", user.id);
+  }
 });
 
 socket.on("disconnect", () => {

@@ -7,63 +7,104 @@ import axios from "../api/axios";
 export default function VolunteerDashboard() {
   const [mission, setMission] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const [rewards, setRewards] = useState([]);
+  const [feedback, setFeedback] = useState([]);
+ 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // ==========================
   // 🔥 FETCH MISSION (IMPORTANT)
   // ==========================
-  useEffect(() => {
-    const fetchMission = async () => {
-      try {
-        const res = await axios.get("/missions/volunteer/me");
-        if (res.data.length > 0) {
-          setMission(res.data[0]);
-          localStorage.setItem("mission", JSON.stringify(res.data[0]));
-        }
-      } catch (err) {
-        console.error("❌ fetch mission error:", err);
+ useEffect(() => {
+  const fetchMission = async () => {
+    try {
+      const res = await axios.get(`/missions/volunteer/me?userId=${user.id}`);
+
+      console.log("MISSION API:", res.data);
+
+      if (res.data) {
+        setMission(res.data);
+
+        localStorage.setItem("mission", JSON.stringify(res.data));
       }
+    } catch (err) {
+      console.error("❌ fetch mission error:", err);
+    }
+  };
+
+  fetchMission();
+}, []);
+
+useEffect(() => {
+  socket.on("mission-update", (data) => {
+    console.log("🔥 UPDATE RECEIVED:", data);
+
+    if (mission?.id === data.missionId) {
+      setMission(prev => ({
+        ...prev,
+        volunteers: data.volunteers
+      }));
+    }
+  });
+
+  return () => socket.off("mission-update");
+}, [mission]);
+
+  useEffect(() => {
+    const handleNotification = () => {
+      axios.get("/rewards/ledger").then((res) => setRewards(Array.isArray(res.data) ? res.data : [])).catch(() => {});
+      axios.get("/feedback").then((res) => setFeedback(Array.isArray(res.data?.rows) ? res.data.rows : [])).catch(() => {});
     };
 
-    fetchMission();
+    socket.on("notification", handleNotification);
+    return () => socket.off("notification", handleNotification);
   }, []);
+
+  useEffect(() => {
+  socket.on("mission-invite", (data) => {
+    const join = confirm(data.message);
+
+    socket.emit("mission-response", {
+      missionId: data.missionId,
+      userId: user.id,
+      status: join ? "joined" : "rejected"
+    });
+  });
+
+  return () => {
+    socket.off("mission-invite");
+  };
+}, []);
 
   // ==========================
   // 🔔 SOCKET (FILTERED)
   // ==========================
   useEffect(() => {
-    const handleMission = (data) => {
-      console.log("🚁 Mission received:", data);
+  const handleMission = (data) => {
+    console.log("🚁 Mission received:", data);
 
-      // 🔥 DISTRICT CHECK (MOST IMPORTANT)
-      if (user?.district !== data.district) return;
+    alert(data.message);
 
-      alert(data.message);
+    setMission(data.mission);
 
-      const newMission = {
-        id: data.missionId,
-        area: data.district || "Unknown"
-      };
+    localStorage.setItem("mission", JSON.stringify(data.mission));
+  };
 
-      setMission(newMission);
-      localStorage.setItem("mission", JSON.stringify(newMission));
-    };
+  socket.on("mission", handleMission);
 
-    socket.on("mission", handleMission);
-
-    return () => socket.off("mission", handleMission);
-  }, [user]);
+  return () => socket.off("mission", handleMission);
+}, []);
 
   // ==========================
   // 🔥 LOAD SAVED (fallback)
   // ==========================
-  useEffect(() => {
-    const saved = localStorage.getItem("mission");
-    if (saved && !mission) {
-      setMission(JSON.parse(saved));
-    }
-  }, [mission]);
+ useEffect(() => {
+  const saved = localStorage.getItem("mission");
+
+  if (saved && !mission) {
+    setMission(JSON.parse(saved));
+  }
+}, []);
 
   // ==========================
   // 🔥 JOIN
@@ -104,48 +145,117 @@ export default function VolunteerDashboard() {
         </div>
 
         {/* EMPTY */}
-        {!mission ? (
-          <div className="vol-empty">
-            <div className="vol-empty-icon">🟢</div>
-            <p>No active mission</p>
-          </div>
-        ) : (
-          <div className="request-card">
+{!mission ? (
+  <div className="vol-empty">
+    <div className="vol-empty-icon">🟢</div>
+    <p>No active mission</p>
+  </div>
+) : (
+  <div className="request-card">
 
-            <div className="request-card-header">
-              <div>
-                <p className="mission-label">ACTIVE MISSION</p>
-                <h3 className="mission-title">{mission.area}</h3>
-              </div>
+    <div className="request-card-header">
+      <div>
+        <p className="mission-label">ACTIVE MISSION</p>
+        <h3 className="mission-title">{mission?.district}</h3>
+      </div>
 
-              <div className="mission-badge">
-                PRIORITY
-              </div>
+      <div className="mission-badge">
+        PRIORITY
+      </div>
+    </div>
+
+    {/* 🔥 ACTION BUTTONS */}
+    <div style={{ marginBottom: "15px" }}>
+      {!mission?.volunteers?.includes(user?.id) ? (
+        <>
+          <button
+            className="join-btn"
+            onClick={() => {
+              socket.emit("mission-response", {
+                missionId: mission.id,
+                userId: user?.id,
+                status: "joined"
+              });
+            }}
+          >
+            ✅ Join Mission
+          </button>
+
+          <button
+            className="join-btn"
+            style={{ marginLeft: "10px", background: "#ff4d4f" }}
+            onClick={() => {
+              socket.emit("mission-response", {
+                missionId: mission.id,
+                userId: user?.id,
+                status: "rejected"
+              });
+            }}
+          >
+            ❌ Reject
+          </button>
+        </>
+      ) : (
+        <p style={{ color: "lime", fontWeight: "bold" }}>
+          ✅ Joined
+        </p>
+      )}
+    </div>
+
+    {/* 🔥 STATUS */}
+    {!mission?.volunteers?.includes(user?.id) && (
+      <p style={{ color: "#ff4d4f" }}>❌ Not Joined</p>
+    )}
+
+    {/* INFO */}
+    <div className="mission-info">
+      <div className="mission-row">
+        <span className="mission-row-label">Mission ID</span>
+        <span className="mission-row-value">{mission.id}</span>
+      </div>
+
+      <div className="mission-divider" />
+
+      <div className="mission-row">
+        <span className="mission-row-label">Area</span>
+        <span className="mission-row-value">{mission?.district}</span>
+      </div>
+    </div>
+
+  </div>
+)}
+
+        <div className="request-card">
+          <div className="request-card-header">
+            <div>
+              <p className="mission-label">REWARDS</p>
+              <h3 className="mission-title">{rewards.reduce((sum, r) => sum + Number(r.points || 0), 0)} points</h3>
             </div>
-
-            <div className="mission-info">
-              <div className="mission-row">
-                <span className="mission-row-label">Mission ID</span>
-                <span className="mission-row-value">{mission.id}</span>
-              </div>
-
-              <div className="mission-divider" />
-
-              <div className="mission-row">
-                <span className="mission-row-label">Area</span>
-                <span className="mission-row-value">{mission.area}</span>
-              </div>
-            </div>
-
-            <button
-              className={`join-btn ${loading ? "loading" : ""}`}
-              onClick={handleJoin}
-            >
-              {loading ? "Joining..." : "✅ Join Mission"}
-            </button>
-
           </div>
-        )}
+
+          {rewards.slice(0, 4).map((reward) => (
+            <div key={reward.id} className="mission-row">
+              <span className="mission-row-label">{reward.reason}</span>
+              <span className="mission-row-value">+{reward.points}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="request-card">
+          <div className="request-card-header">
+            <div>
+              <p className="mission-label">FEEDBACK</p>
+              <h3 className="mission-title">{feedback.length} reviews</h3>
+            </div>
+          </div>
+
+          {feedback.slice(0, 3).map((item) => (
+            <div key={item.id} className="mission-row">
+              <span className="mission-row-label">{item.rating}/5</span>
+              <span className="mission-row-value">{item.comments || "No comment"}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

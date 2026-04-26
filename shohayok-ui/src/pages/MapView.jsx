@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
 import mapboxgl from "mapbox-gl";
-import { io } from "socket.io-client";
+import socket from "../socket/socket";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const MAX_LOAD = 50;
-
-// 🔥 single socket (lazy connect)
-let socket;
 
 export default function MapView() {
   const mapRef = useRef(null);
@@ -18,6 +15,22 @@ export default function MapView() {
   const [blocked, setBlocked] = useState(false);
   const [loads, setLoads] = useState(0);
 
+ useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    socket.on("connect", () => {
+      console.log("🟢 SOCKET CONNECTED:", socket.id);
+
+      if (user?.id) {
+        socket.emit("join", user.id); // 🔥 IMPORTANT
+      }
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("❌ SOCKET ERROR:", err.message);
+    });
+
+  }, []);
   useEffect(() => {
     let currentLoads = Number(localStorage.getItem("map_loads") || 0);
 
@@ -34,11 +47,6 @@ export default function MapView() {
 
     console.log("🧭 Map Loads:", currentLoads);
 
-    // 🔥 create socket only when needed
-    socket = io("http://localhost:5000", {
-      transports: ["websocket"],
-    });
-
     // 🔥 prevent multiple map init
     if (mapRef.current) return;
 
@@ -50,7 +58,7 @@ export default function MapView() {
     });
 
     // 🔥 receive location
-    socket.on("receive-location", ({ userId, lat, lng, role }) => {
+    const handleLocation = ({ userId, lat, lng, role }) => {
   let color = "gray";
   let label = "Unknown";
 
@@ -60,7 +68,7 @@ export default function MapView() {
   } else if (role === "user") {
     color = "red";
     label = "User 🆘";
-  } else if (role === "head") {
+  } else if (role === "volunteer_head") {
     color = "green";
     label = "Team Lead 🧭";
   }
@@ -87,18 +95,21 @@ export default function MapView() {
 
     markers.current[userId] = marker;
   }
-});
+};
 
-    socket.on("stop-tracking", () => {
+    const handleStopTracking = () => {
+      console.log("🛑 STOP TRACKING");
       Object.values(markers.current).forEach((m) => m.remove());
       markers.current = {};
-    });
+    };
+
+    socket.on("receive-location", handleLocation);
+    socket.on("stop-tracking", handleStopTracking);
 
     // 🔥 cleanup
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      socket.off("receive-location", handleLocation);
+      socket.off("stop-tracking", handleStopTracking);
 
       if (mapRef.current) {
         mapRef.current.remove();

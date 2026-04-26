@@ -11,6 +11,9 @@ const [alerts, setAlerts] = useState([]);
 const [missions, setMissions] = useState([]);
 const [instructions, setInstructions] = useState([]);
 const [users, setUsers] = useState([]);
+const [feedback, setFeedback] = useState([]);
+const [leaderboard, setLeaderboard] = useState([]);
+const [manualReward, setManualReward] = useState({ volunteerId: "", points: 25, note: "" });
 
 const [emergency, setEmergency] = useState(false);
 const [mission, setMission] = useState(false);
@@ -25,6 +28,12 @@ const currentAlert = alerts.length > 0 ? alerts[0] : null;
 // 🔥 SAFE MISSION
 const hasMission = missions.length > 0;
 const currentMission = missions.length > 0 ? missions[0] : null;
+const safeArray = (res) => {
+  if (!res || !res.data) return [];
+  if (Array.isArray(res.data)) return res.data;
+  if (Array.isArray(res.data.rows)) return res.data.rows;
+  return [];
+};
   useEffect(() => {
     if (!token) {
       alert("Please login first");
@@ -122,63 +131,81 @@ useEffect(() => {
     status: r.status
   });
 
-  // 🔥 FETCH DATA SAFE WAY
-  const fetchRequests = async () => {
-    try {
-      const [reqRes, acceptedRes, missionRes, reportRes, instRes , userRes] =
-        await Promise.all([
-          axios.get("/requests"),
-          axios.get("/requests/accepted"),
-          axios.get("/missions"),
-          axios.get("/reports"),
-          axios.get("/instructions"),
-          axios.get("/api/users")
-        ]);
+// 🔥 FETCH DATA SAFE WAY
+const fetchRequests = async () => {
+  try {
+    const [
+      missionRes,
+      reportRes,
+      instRes,
+      userRes,
+      feedbackRes,
+      leaderboardRes,
+      reqRes
+    ] = await Promise.all([
+      axios.get("/missions"),
+      axios.get("/reports"),
+      axios.get("/instructions"),
+      axios.get("/users"),
+      axios.get("/feedback"),
+      axios.get("/rewards/leaderboard", {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      axios.get("/requests")
+    ]);
 
-      console.log("REPORT DATA:", reportRes.data);
-      console.log("INSTRUCTION DATA:", instRes.data);
-      console.log("USER DATA:", userRes.data);
+    console.log("REPORT DATA:", reportRes.data);
+    console.log("INSTRUCTION DATA:", instRes.data);
+    console.log("USER DATA:", userRes.data);
 
-      const pending = Array.isArray(reqRes.data?.requests)
-        ? reqRes.data.requests
-        : [];
+    const pending = Array.isArray(reqRes.data?.requests)
+      ? reqRes.data.requests
+      : [];
 
-      const alertData = Array.isArray(reqRes.data?.alerts)
-        ? reqRes.data.alerts
-        : [];
+    const alertData = Array.isArray(reqRes.data?.alerts)
+      ? reqRes.data.alerts
+      : [];
 
-      const instructionsData = Array.isArray(instRes.data)
-        ? instRes.data
-        : [];
+    setAlerts(alertData);
+    setMissions(safeArray(missionRes));
+    setReports(safeArray(reportRes));
+    setInstructions(safeArray(instRes));
+    setUsers(safeArray(userRes));
+    setFeedback(safeArray(feedbackRes));
+    setLeaderboard(safeArray(leaderboardRes));
+    setRequests(pending.map(mapItem));
+  } catch (err) {
+    console.error("❌ FETCH ERROR:", err.response?.data || err.message);
 
-      setAlerts(alertData);
-      setMissions(Array.isArray(missionRes.data) ? missionRes.data : []);
-      setReports(Array.isArray(reportRes.data) ? reportRes.data : []);
-      setInstructions(instructionsData);
-      setUsers(Array.isArray(userRes.data) ? userRes.data : []);
-
-      setRequests([
-        ...(Array.isArray(acceptedRes.data)
-          ? acceptedRes.data.map(mapItem)
-          : []),
-        ...pending.map(mapItem)
-      ]);
-
-    } catch (err) {
-      console.error("❌ FETCH ERROR:", err.response?.data || err.message);
-
-      if (err.response?.status === 401) {
-        alert("Session expired. Login again.");
-        localStorage.clear();
-        navigate("/login");
-      }
+    if (err.response?.status === 401) {
+      alert("Session expired");
+      localStorage.clear();
+      navigate("/login");
     }
-  };
+  }
+};
 
   useEffect(() => {
     fetchRequests();
   }, []);
-  const handleMakeHead = async (id) => {
+
+  const fetchLeaderboard = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await axios.get("/rewards/leaderboard", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    console.log("LEADERBOARD:", res.data);
+
+  } catch (err) {
+    console.error("❌ leaderboard error:", err.response?.data || err.message);
+  }
+};
+const handleMakeHead = async (id) => {
   if (!window.confirm("Make this user Volunteer Head?")) return;
 
   try {
@@ -188,6 +215,26 @@ useEffect(() => {
   } catch (err) {
     console.error(err.response?.data || err.message);
     alert("Failed to promote");
+  }
+};
+
+const handleManualReward = async () => {
+  if (!manualReward.volunteerId || !manualReward.points) {
+    alert("Select volunteer and points first");
+    return;
+  }
+
+  try {
+    await axios.post("/rewards/manual", {
+      volunteerId: manualReward.volunteerId,
+      points: Number(manualReward.points),
+      note: manualReward.note
+    });
+    setManualReward({ volunteerId: "", points: 25, note: "" });
+    fetchRequests();
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    alert("Failed to add reward");
   }
 };
   // 🔥 REQUEST ACTION
@@ -327,6 +374,81 @@ useEffect(() => {
 
               </div>
             ))}
+        </div>
+
+        <div className="section">
+          <p className="section-header">🏆 Rewards & Leaderboard</p>
+
+          <div className="request-card">
+            <div className="card-top">
+              <div className="avatar">🏆</div>
+              <div style={{ flex: 1 }}>
+                <div className="card-name">Manual Reward</div>
+                <div className="card-location">Add points for extra contribution</div>
+              </div>
+            </div>
+
+            <div className="card-actions" style={{ flexWrap: "wrap" }}>
+              <select
+                value={manualReward.volunteerId}
+                onChange={(e) => setManualReward({ ...manualReward, volunteerId: e.target.value })}
+              >
+                <option value="">Select volunteer</option>
+                {users
+                  .filter((u) => ["volunteer", "volunteer_head"].includes(u.role))
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.points || 0} pts)</option>
+                  ))}
+              </select>
+              <input
+                type="number"
+                min="1"
+                value={manualReward.points}
+                onChange={(e) => setManualReward({ ...manualReward, points: e.target.value })}
+              />
+              <input
+                value={manualReward.note}
+                placeholder="Reason"
+                onChange={(e) => setManualReward({ ...manualReward, note: e.target.value })}
+              />
+              <button onClick={handleManualReward}>➕ Add Points</button>
+            </div>
+          </div>
+
+          {leaderboard.slice(0, 5).map((u, index) => (
+            <div key={u.id} className="request-card">
+              <div className="card-top">
+                <div className="avatar">{index + 1}</div>
+                <div style={{ flex: 1 }}>
+                  <div className="card-name">{u.name}</div>
+                  <div className="card-location">{u.role} • {u.district} • {u.points || 0} points</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="section">
+          <p className="section-header">⭐ Feedback</p>
+
+          {feedback.length === 0 ? (
+            <p>No feedback yet</p>
+          ) : (
+            feedback.slice(0, 8).map((f) => (
+              <div key={f.id} className="request-card">
+                <div className="card-top">
+                  <div className="avatar">⭐</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="card-name">{f.rating}/5 rating</div>
+                    <div className="card-location">Mission: {f.missionId}</div>
+                  </div>
+                </div>
+                <p style={{ marginTop: "10px", fontSize: "14px", color: "#cbd5f5" }}>
+                  {f.comments || "No comment"}
+                </p>
+              </div>
+            ))
+          )}
         </div>
 
         {/* ALERT */}

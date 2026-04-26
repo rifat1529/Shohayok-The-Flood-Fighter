@@ -7,7 +7,34 @@ const startMission = async (req, res) => {
     const { area } = req.body;
     if (!area) return res.status(400).json({ message: "area required" });
 
-    const mission = await Mission.create({ area, status: "active" });
+  
+
+const head = await User.findOne({
+  where: {
+    role: "volunteer_head",
+    district: area.toLowerCase().trim()
+  }
+});
+
+const mission = await Mission.create({
+  district: area,
+  volunteerHeadId: head.id, // 🔥 MUST
+  volunteers: []
+});
+
+if (!head) {
+  return res.status(400).json({ message: "No volunteer head found" });
+}
+
+// 🔔 notify head
+const io = req.app.get("io");
+
+if (head) {
+  io.to(head.id).emit("mission", {
+    message: "🚨 New mission assigned to you",
+    mission
+  });
+}
 
     // 🔥 get users
     const volunteers = await User.findAll({

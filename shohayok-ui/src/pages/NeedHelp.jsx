@@ -2,11 +2,6 @@ import "../styles/help.css";
 import Navbar from "../components/Navbar";
 import { useState } from "react";
 import axios from "../api/axios";
-import { io } from "socket.io-client";
-const socket = io("http://localhost:5000", {
-  transports: ["websocket"]
-});
-
 
 export default function NeedHelp() {
   const [form, setForm] = useState({
@@ -164,17 +159,17 @@ const SUB_DISTRICTS = {
                 <div>
                   <label className="nh-label">DISTRICT</label>
                   <select
-  className="nh-input"
-  value={form.district}
-  onChange={set("district")}
->
-  <option value="">Select District</option>
-  {DISTRICTS.map((d) => (
-    <option key={d} value={d}>
-      {d}
-    </option>
-  ))}
-</select>
+                    className="nh-input"
+                    value={form.district}
+                    onChange={set("district")}
+             >
+                  <option value="">Select District</option>
+                     {DISTRICTS.map((d) => (
+                  <option key={d} value={d}>
+                     {d}
+                  </option>
+                  ))}
+                  </select>
                 </div>
                 <div>
                   <label className="nh-label">SUB-DISTRICT</label>

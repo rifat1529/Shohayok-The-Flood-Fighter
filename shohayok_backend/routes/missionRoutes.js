@@ -5,6 +5,35 @@ const Mission = require("../models/Mission");
 // ==========================
 // 🔹 GET ALL MISSIONS (ADMIN)
 // ==========================
+
+router.get("/volunteer/me", async (req, res) => {
+  try {
+    const userId = req.query.userId;
+
+    const mission = await Mission.findOne({
+      where: { status: "active" },
+      order: [["createdAt", "DESC"]]
+    });
+
+    if (!mission) return res.json(null);
+
+    let volunteers = mission.volunteers || [];
+
+    if (!Array.isArray(volunteers)) {
+      volunteers = JSON.parse(volunteers || "[]");
+    }
+
+    res.json({
+      ...mission.toJSON(),
+      volunteers
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch mission" });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const missions = await Mission.findAll({
@@ -39,5 +68,7 @@ router.get("/head/:volunteerId", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+
 
 module.exports = router;

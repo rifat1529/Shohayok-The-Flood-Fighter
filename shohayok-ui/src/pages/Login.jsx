@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "../api/axios";
+import socket from "../socket/socket";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -36,7 +37,7 @@ export default function Login() {
       // ✅ SAVE
       localStorage.setItem("token", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
-
+      if (user?.id) { socket.emit("join", user.id); console.log("🟢 Socket joined:", user.id); }
       const role = user.role;
 
       // 🔥 SAFE NAVIGATION

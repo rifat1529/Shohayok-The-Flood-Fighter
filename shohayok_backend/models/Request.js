@@ -23,15 +23,24 @@ const Request = sequelize.define(
     },
     district: {
       type: DataTypes.STRING(80),
-      allowNull: false
+      allowNull: false,
+      set(value) {
+        this.setDataValue("district", String(value).toLowerCase().trim());
+      }
     },
     subDistrict: {
       type: DataTypes.STRING(80),
-      allowNull: false
+      allowNull: false,
+      set(value) {
+        this.setDataValue("subDistrict", String(value).toLowerCase().trim());
+      }
     },
     village: {
       type: DataTypes.STRING(120),
-      allowNull: false
+      allowNull: false,
+      set(value) {
+        this.setDataValue("village", String(value).toLowerCase().trim());
+      }
     },
     peopleCount: {
       type: DataTypes.INTEGER,
