@@ -11,7 +11,8 @@ import SubmitReport from "./pages/SubmitReport";
 import VolunteerHeadDashboard from "./pages/VolunteerHeadDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import AddInstruction from "./pages/AddInstruction";
+import Dashboard from "./pages/Dashboard";
 function App() {
   return (
     <Router>
@@ -55,7 +56,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/submit-report" element={<SubmitReport />} />
-
+        <Route path="/admin/instruction" element={<AddInstruction />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         {/* 🔐 Volunteer Dashboard */}
         <Route
           path="/volunteer-head-dashboard"

@@ -1,6 +1,6 @@
 import "../styles/admin.css";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ FIX
 import Navbar from "../components/Navbar";
 import axios from "../api/axios";
 
@@ -9,11 +9,13 @@ export default function AdminDashboard() {
   const [reports, setReports] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [missions, setMissions] = useState([]);
+  const [instructions, setInstructions] = useState([]); // ✅ FIX
+
   const navigate = useNavigate();
+  const token = localStorage.getItem("token"); // ✅ FIX
 
   // 🔥 TOKEN CHECK
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token) {
       alert("Please login first");
       navigate("/login");
@@ -37,24 +39,39 @@ export default function AdminDashboard() {
   // 🔥 FETCH DATA SAFE WAY
   const fetchRequests = async () => {
     try {
-      const [reqRes, acceptedRes, missionRes, reportRes] = await Promise.all([
-        axios.get("/requests"),
-        axios.get("/requests/accepted"),
-        axios.get("/missions"),
-        axios.get("/reports")
-      ]);
+      const [reqRes, acceptedRes, missionRes, reportRes, instRes] =
+        await Promise.all([
+          axios.get("/requests"),
+          axios.get("/requests/accepted"),
+          axios.get("/missions"),
+          axios.get("/reports"),
+          axios.get("/instructions")
+        ]);
 
       console.log("REPORT DATA:", reportRes.data);
+      console.log("INSTRUCTION DATA:", instRes.data);
 
-      const pending = reqRes.data?.requests || [];
-      const alertData = reqRes.data?.alerts || [];
+      const pending = Array.isArray(reqRes.data?.requests)
+        ? reqRes.data.requests
+        : [];
+
+      const alertData = Array.isArray(reqRes.data?.alerts)
+        ? reqRes.data.alerts
+        : [];
+
+      const instructionsData = Array.isArray(instRes.data)
+        ? instRes.data
+        : [];
 
       setAlerts(alertData);
-      setMissions(missionRes.data || []);
-      setReports(reportRes.data || []);
+      setMissions(Array.isArray(missionRes.data) ? missionRes.data : []);
+      setReports(Array.isArray(reportRes.data) ? reportRes.data : []);
+      setInstructions(instructionsData);
 
       setRequests([
-        ...(acceptedRes.data || []).map(mapItem),
+        ...(Array.isArray(acceptedRes.data)
+          ? acceptedRes.data.map(mapItem)
+          : []),
         ...pending.map(mapItem)
       ]);
 
@@ -102,7 +119,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const emergencyCount = requests.filter(r => r.status === "pending").length;
+  // 🔥 DELETE INSTRUCTION
+  const handleDeleteInstruction = async (id) => {
+    if (!window.confirm("Delete instruction?")) return;
+
+   try {
+    await axios.delete(`/instructions/${id}`); // ✅ no headers here
+    setInstructions((prev) => prev.filter((i) => i.id !== id));
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    alert("Failed to delete instruction");
+  }
+};
+
+  const emergencyCount = requests.filter((r) => r.status === "pending").length;
 
   return (
     <div className="admin-root">
@@ -110,13 +140,62 @@ export default function AdminDashboard() {
 
       <div className="admin-container">
 
+        {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <h1 className="page-heading">Admin Dashboard</h1>
 
-          <button className="logout-btn" onClick={handleLogout}>
+          {/* <button className="logout-btn" onClick={handleLogout}>
             🚪 Logout
+          </button> */}
+        </div>
+
+       {/* 🔥 INSTRUCTION SECTION */}
+<div className="section">
+
+  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+    <p className="section-header">📢 Instructions</p>
+
+    <Link to="/admin/instruction">
+      <button className="submit-btn" style={{ padding: "8px 14px", fontSize: "13px" }}>
+        ➕ Add
+      </button>
+    </Link>
+  </div>
+
+  {Array.isArray(instructions) && instructions.length === 0 ? (
+    <p>No instructions</p>
+  ) : (
+    (Array.isArray(instructions) ? instructions : []).map((i, index) => (
+      <div key={i.id} className="request-card"> {/* CSS match */}
+
+        <div className="card-top">
+          <div className="avatar">📢</div>
+
+          <div style={{ flex: 1 }}>
+            <div className="card-name">
+              {index + 1}. {i.title}
+            </div>
+
+            <div className="card-location">
+              {i.type} • {i.district || "All"}
+            </div>
+          </div>
+        </div>
+
+        <p style={{ marginTop: "10px", fontSize: "14px", color: "#cbd5f5" }}>
+          {i.content}
+        </p>
+
+        <div className="card-actions">
+          <button onClick={() => handleDeleteInstruction(i.id)}>
+            ❌ Delete
           </button>
         </div>
+
+      </div>
+    ))
+  )}
+</div>
 
         {/* ALERT */}
         <div className="emergency-banner">
@@ -145,7 +224,7 @@ export default function AdminDashboard() {
             <div className="emergency-pulse">🚁</div>
             <div>
               <p className="emergency-label">ACTIVE MISSION</p>
-              <p className="emergency-area">{missions[0].area}</p>
+              <p className="emergency-area">{missions[0]?.area}</p>
             </div>
           </div>
         )}
@@ -200,12 +279,8 @@ export default function AdminDashboard() {
         <div className="section">
           <p className="section-header">Reports (Pending)</p>
 
-          {reports.filter(r => r.status === "pending").length === 0 && (
-            <p>No reports yet</p>
-          )}
-
-          {reports
-            .filter(r => r.status === "pending")
+          {(Array.isArray(reports) ? reports : [])
+            .filter((r) => r.status === "pending")
             .map((r) => (
               <div key={r.id} className="request-card">
 
@@ -215,23 +290,23 @@ export default function AdminDashboard() {
                     style={{ width: "100%", height: "180px", objectFit: "cover" }}
                   />
                 )}
+
                 <div style={{ marginTop: "10px", fontSize: "14px" }}>
-  📊 Requests: {r.totalRequests} <br />
-  ✅ Accepted: {r.acceptedRequests} <br />
-  👥 Needed: {r.totalPeopleRequested} <br />
-  ❤️ Helped: {r.peopleHelped} <br />
+                  📊 Requests: {r.totalRequests} <br />
+                  ✅ Accepted: {r.acceptedRequests} <br />
+                  👥 Needed: {r.totalPeopleRequested} <br />
+                  ❤️ Helped: {r.peopleHelped} <br />
+                  <hr />
+                  🚁 Rescue: {r.rescueCount} <br />
+                  🍱 Food: {r.foodCount} <br />
+                  💊 Medicine: {r.medicineCount}
+                </div>
 
-  <hr />
-
-  🚁 Rescue: {r.rescueCount} <br />
-  🍱 Food: {r.foodCount} <br />
-  💊 Medicine: {r.medicineCount}
-</div>
                 <div className="card-top">
                   <div className="avatar">📋</div>
 
                   <div style={{ flex: 1 }}>
-                    <div className="card-name">{r.area}</div>
+                    <div className="card-name">{r.district}</div>
                     <div className="card-location">
                       {r.helpType} • {r.peopleHelped}
                     </div>

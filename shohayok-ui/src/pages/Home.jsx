@@ -7,7 +7,7 @@ import UserTracker from "../components/UserTracker";
 export default function Home() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [instructions, setInstructions] = useState([]);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   // ✅ DELETE FUNCTION (OUTSIDE useEffect)
@@ -62,6 +62,27 @@ export default function Home() {
     fetchReports();
   }, []);
 
+  useEffect(() => {
+    const fetchInstructions = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/instructions");
+        const data = await res.json();
+
+        if (Array.isArray(data)) {
+          setInstructions(data);
+        } else {
+          console.error("Invalid response:", data);
+          setInstructions([]);
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchInstructions();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -91,7 +112,39 @@ export default function Home() {
               </div>
             </div>
           </header>
+          <h2>🚨 Instructions</h2>
 
+<div className="instruction-box">
+  {instructions.length === 0 ? (
+    <p>No instructions</p>
+  ) : (
+    instructions.map((i) => (
+      <div
+        key={i.id}
+        style={{
+          border: "1px solid #333",
+          padding: "10px",
+          marginBottom: "10px",
+          borderRadius: "8px",
+          background:
+            i.priority === "high"
+              ? "#3b0000"
+              : i.priority === "medium"
+              ? "#1e293b"
+              : "#111"
+        }}
+      >
+        <h4>{i.title}</h4>
+        <p>{i.content}</p>
+
+        <small style={{ color: "#94a3b8" }}>
+          {i.type.toUpperCase()}
+          {i.district && ` • ${i.district}`}
+        </small>
+      </div>
+    ))
+  )}
+</div>
           <h2>Latest Operations</h2>
 
           <div className="reports-grid">
