@@ -2,33 +2,49 @@ const app = require("./app");
 const dotenv = require("dotenv");
 const sequelize = require("./config/database");
 
-// 👇 NEW
 const http = require("http");
 const { Server } = require("socket.io");
 const chatSocket = require("./sockets/chatSocket");
-const reportRoutes = require("./routes/reportRoutes");
-// models load
+
 require("./models");
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
-// 👇 create server
 const server = http.createServer(app);
 
-// 👇 socket setup
+// ==========================
+// 🔥 SOCKET SETUP
+// ==========================
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
     credentials: true
   },
-  transports: ["websocket", "polling"] 
+  transports: ["websocket", "polling"]
 });
 
-// 👇 initialize socket
+// 🔥 MAKE SOCKET GLOBAL
+app.set("io", io);
+
+// ==========================
+// 🔥 GLOBAL SOCKET LISTENER (ADD THIS)
+// ==========================
+io.on("connection", (socket) => {
+  console.log("🟢 Connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Disconnected:", socket.id);
+  });
+});
+
+// 🔥 CHAT SOCKET
 chatSocket(io);
 
+// ==========================
+// 🔥 START SERVER
+// ==========================
 (async () => {
   try {
     await sequelize.authenticate();
@@ -37,7 +53,6 @@ chatSocket(io);
     await sequelize.sync();
     console.log("✅ Models synced");
 
-    // ❗ app.listen না, server.listen
     server.listen(PORT, () => {
       console.log(`🚀 Shohayok Server running on http://localhost:${PORT}`);
     });

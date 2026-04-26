@@ -3,18 +3,28 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom"; // ✅ FIX
 import Navbar from "../components/Navbar";
 import axios from "../api/axios";
-
+import socket from "../socket/socket";
 export default function AdminDashboard() {
-  const [requests, setRequests] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [missions, setMissions] = useState([]);
-  const [instructions, setInstructions] = useState([]); // ✅ FIX
+const [requests, setRequests] = useState([]);
+const [reports, setReports] = useState([]);
+const [alerts, setAlerts] = useState([]);
+const [missions, setMissions] = useState([]);
+const [instructions, setInstructions] = useState([]);
+const [users, setUsers] = useState([]);
 
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token"); // ✅ FIX
+const [emergency, setEmergency] = useState(false);
+const [mission, setMission] = useState(false);
 
-  // 🔥 TOKEN CHECK
+const navigate = useNavigate();
+const token = localStorage.getItem("token");
+
+// 🔥 SAFE ALERT HANDLING
+const hasAlert = emergency || alerts.length > 0;
+const currentAlert = alerts.length > 0 ? alerts[0] : null;
+
+// 🔥 SAFE MISSION
+const hasMission = missions.length > 0;
+const currentMission = missions.length > 0 ? missions[0] : null;
   useEffect(() => {
     if (!token) {
       alert("Please login first");
@@ -22,6 +32,82 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  useEffect(() => {
+
+  socket.on("volunteer-joined", (data) => {
+    console.log("👥 Updated Count:", data);
+
+    setMissions(prev =>
+      prev.map(m =>
+        m.id === data.missionId
+          ? { ...m, volunteerCount: data.count }
+          : m
+      )
+    );
+  });
+
+  return () => socket.off("volunteer-joined");
+
+}, []);
+// 🔔 SOCKET LISTENER (separate)
+useEffect(() => {
+
+  const handleConnect = () => {
+    console.log("🟢 Connected to socket:", socket.id);
+  };
+
+  const handleEmergency = (data) => {
+    alert(data.message);
+    setEmergency(true);
+  };
+
+  const handleMission = (data) => {
+    console.log("🚁 Mission received:", data);
+
+    if (!data?.missionId) return;
+
+    alert(data.message);
+
+    setMissions(prev => {
+      const exists = prev.some(m => m.id === data.missionId);
+      if (exists) return prev;
+
+      return [
+        {
+          id: data.missionId,
+          district: data.district
+        },
+        ...prev
+      ];
+    });
+  };
+
+  // 🔥 attach listeners
+  socket.on("connect", handleConnect);
+  socket.on("emergency-alert", handleEmergency);
+  socket.on("mission", handleMission);
+
+  // 🔥 CLEANUP (VERY IMPORTANT)
+  return () => {
+    socket.off("connect", handleConnect);
+    socket.off("emergency-alert", handleEmergency);
+    socket.off("mission", handleMission);
+  };
+
+}, []); // 🔥 run only once
+
+useEffect(() => {
+
+  socket.on("emergency-alert", (data) => {
+    alert(data.message); // 🔥 popup
+    setEmergency(true);
+  });
+
+  return () => {
+    socket.off("emergency-alert");
+  };
+
+}, []);
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
@@ -39,17 +125,19 @@ export default function AdminDashboard() {
   // 🔥 FETCH DATA SAFE WAY
   const fetchRequests = async () => {
     try {
-      const [reqRes, acceptedRes, missionRes, reportRes, instRes] =
+      const [reqRes, acceptedRes, missionRes, reportRes, instRes , userRes] =
         await Promise.all([
           axios.get("/requests"),
           axios.get("/requests/accepted"),
           axios.get("/missions"),
           axios.get("/reports"),
-          axios.get("/instructions")
+          axios.get("/instructions"),
+          axios.get("/api/users")
         ]);
 
       console.log("REPORT DATA:", reportRes.data);
       console.log("INSTRUCTION DATA:", instRes.data);
+      console.log("USER DATA:", userRes.data);
 
       const pending = Array.isArray(reqRes.data?.requests)
         ? reqRes.data.requests
@@ -67,6 +155,7 @@ export default function AdminDashboard() {
       setMissions(Array.isArray(missionRes.data) ? missionRes.data : []);
       setReports(Array.isArray(reportRes.data) ? reportRes.data : []);
       setInstructions(instructionsData);
+      setUsers(Array.isArray(userRes.data) ? userRes.data : []);
 
       setRequests([
         ...(Array.isArray(acceptedRes.data)
@@ -89,7 +178,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchRequests();
   }, []);
+  const handleMakeHead = async (id) => {
+  if (!window.confirm("Make this user Volunteer Head?")) return;
 
+  try {
+    await axios.patch(`/api/users/${id}/make-head`);
+    alert("Promoted to Volunteer Head!");
+    fetchRequests();
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    alert("Failed to promote");
+  }
+};
   // 🔥 REQUEST ACTION
   const handleRequest = async (id, action) => {
     try {
@@ -197,34 +297,66 @@ export default function AdminDashboard() {
   )}
 </div>
 
-        {/* ALERT */}
-        <div className="emergency-banner">
-          <div className="emergency-pulse">
-            {alerts.length > 0 ? "🚨" : "✅"}
-          </div>
+<div className="section">
+          <p className="section-header">🤝 Volunteers</p>
 
-          <div>
-            <p className="emergency-label">
-              {alerts.length > 0 ? "EMERGENCY ALERT" : "NO ACTIVE ALERT"}
-            </p>
-            <p className="emergency-area">
-              {alerts[0]?.area || "All areas stable"}
-            </p>
-          </div>
+          {users
+            .filter((u) => u.role === "volunteer")
+            .map((u, index) => (
+              <div key={u.id} className="request-card">
 
-          <div className="emergency-count">
-            <p className="lbl">Requests</p>
-            <div className="num">{alerts[0]?.count || 0}</div>
-          </div>
+                <div className="card-top">
+                  <div className="avatar">{u.name?.[0]}</div>
+
+                  <div style={{ flex: 1 }}>
+                    <div className="card-name">
+                      {index + 1}. {u.name}
+                    </div>
+
+                    <div className="card-location">
+                      {u.district} • Points: {u.points || 0}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-actions">
+                  <button onClick={() => handleMakeHead(u.id)}>
+                    ⭐ Make Head
+                  </button>
+                </div>
+
+              </div>
+            ))}
         </div>
 
+        {/* ALERT */}
+        <div className="emergency-banner">
+  <div className="emergency-pulse">
+    {hasAlert ? "🚨" : "✅"}
+  </div>
+
+  <div>
+    <p className="emergency-label">
+      {hasAlert ? "EMERGENCY ALERT" : "NO ACTIVE ALERT"}
+    </p>
+    <p className="emergency-area">
+      {currentAlert?.area || "All areas stable"}
+    </p>
+  </div>
+
+  <div className="emergency-count">
+    <p className="lbl">Requests</p>
+    <div className="num">{currentAlert?.count || 0}</div>
+  </div>
+</div>
+
         {/* MISSION */}
-        {missions.length > 0 && (
+        {hasMission && (
           <div className="emergency-banner" style={{ borderColor: "#6366f1" }}>
             <div className="emergency-pulse">🚁</div>
             <div>
               <p className="emergency-label">ACTIVE MISSION</p>
-              <p className="emergency-area">{missions[0]?.area}</p>
+              <p className="emergency-area">{currentMission?.district}</p>
             </div>
           </div>
         )}

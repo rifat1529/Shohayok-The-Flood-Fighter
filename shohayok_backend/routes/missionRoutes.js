@@ -3,7 +3,7 @@ const router = express.Router();
 const Mission = require("../models/Mission");
 
 // ==========================
-// 🔹 GET ALL MISSIONS (optional)
+// 🔹 GET ALL MISSIONS (ADMIN)
 // ==========================
 router.get("/", async (req, res) => {
   try {
@@ -14,15 +14,15 @@ router.get("/", async (req, res) => {
     res.json(missions);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch missions" });
+    console.error("🔥 GET ALL MISSIONS ERROR:", err);
+    res.status(500).json({ message: err.message });
   }
 });
 
 // ==========================
-// 🔥 GET VOLUNTEER MISSIONS (IMPORTANT)
+// 🔹 GET VOLUNTEER HEAD MISSIONS (FIXED)
 // ==========================
-router.get("/:volunteerId", async (req, res) => {
+router.get("/head/:volunteerId", async (req, res) => {
   try {
     const missions = await Mission.findAll({
       where: {
@@ -35,8 +35,8 @@ router.get("/:volunteerId", async (req, res) => {
     res.json(missions);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch volunteer missions" });
+    console.error("🔥 HEAD MISSION ERROR:", err);
+    res.status(500).json({ message: err.message });
   }
 });
 

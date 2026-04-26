@@ -1,10 +1,8 @@
 import "../styles/volhead.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:5000");
+import socket from "../socket/socket";
 
 const TEAMS = [
   { id: 1, name: "Rescue Team", emoji: "🚁", status: "Active", members: 6, color: "#ef4444", glow: "rgba(239,68,68,0.3)", progress: 80 },
@@ -17,37 +15,79 @@ export default function VolunteerHeadDashboard() {
   const [mission, setMission] = useState(null);
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
+  // ==========================
   // 🔥 FETCH MISSION (FIXED)
-  useEffect(() => {
-    const fetchMission = async () => {
-      try {
-        const res = await fetch(`http://localhost:5000/missions/${user.id}`);
-        const data = await res.json();
+  // ==========================
 
-        if (data.length > 0) {
-          setMission(data[0]);
-          localStorage.setItem("activeMission", JSON.stringify(data[0]));
-        } else {
-          setMission(null);
-        }
-      } catch (err) {
-        console.error(err);
+ useEffect(() => {
+  const handleMission = (data) => {
+    console.log("🚁 Received:", data);
+
+    // 🔥 ONLY SAME DISTRICT
+    if (user?.district?.toLowerCase().trim() !== data.district?.toLowerCase().trim ()) return;
+
+    alert(data.message);
+
+  if (user?.id) {
+      fetch(`http://localhost:5000/missions/head/${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length > 0) {
+            setMission(data[0]);
+          }
+        });
+    }
+  };
+
+
+  socket.on("mission", handleMission);
+
+  return () => socket.off("mission", handleMission);
+
+}, [user?.id, user?.district]);
+  useEffect(() => {
+
+    const handleMission = (data) => {
+      alert(data.message);
+
+      // 🔥 reload না করে refetch
+      if (user?.id) {
+        fetch(`http://localhost:5000/missions/head/${user.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.length > 0) {
+              setMission(data[0]);
+            }
+          });
       }
     };
 
-    fetchMission();
-  }, []);
+    socket.on("mission", handleMission);
 
+    return () => {
+      socket.off("mission", handleMission); // ✅ FIX
+    };
+
+  }, [user?.id]);
+
+  // ==========================
   // 🔥 ON DUTY
+  // ==========================
   const handleDutyToggle = () => {
     const newState = !onDuty;
     setOnDuty(newState);
 
     if (newState && mission) {
       socket.emit("on-duty", {
-        missionId: mission.id
+        missionId: mission.id,
+        headId: user.id
+      });
+      
+      socket.emit("notify-volunteers", {
+        missionId: mission.id,
+        district: mission.district
       });
     }
   };
@@ -74,12 +114,12 @@ export default function VolunteerHeadDashboard() {
               className={`duty-toggle ${onDuty ? "on" : ""}`}
               onClick={handleDutyToggle}
             >
-              <div className="duty-dot" />
-              <span className="duty-text">ON DUTY</span>
-              <span className={`duty-pill ${onDuty ? "on-pill" : "off"}`}>
-                {onDuty ? "ACTIVE" : "OFF"}
-              </span>
-            </div>
+                <div className="duty-dot" />
+                      <span className="duty-text">ON DUTY</span>
+                      <span className={`duty-pill ${onDuty ? "on-pill" : "off"}`}>
+                               {onDuty ? "ACTIVE" : "OFF"}
+                      </span>
+                </div>
 
             <button className="logout-btn" onClick={handleLogout}>
               🚪 Logout
@@ -94,7 +134,7 @@ export default function VolunteerHeadDashboard() {
             <div>
               <p className="mission-alert-label">MISSION ASSIGNED</p>
               <p className="mission-alert-title">
-                {mission.area}
+                {mission.district}
               </p>
             </div>
           </div>
@@ -115,17 +155,16 @@ export default function VolunteerHeadDashboard() {
               className="logout-btn"
               style={{ background: "#ef4444" }}
               onClick={() => {
-  setOnDuty(false);
+                setOnDuty(false);
 
-  socket.emit("mission-complete", {
-    missionId: mission.id
-  });
+                socket.emit("mission-complete", {
+                  missionId: mission.id,
+                  headId: user.id
+                });
 
-  setMission(null);
-
-  // 🔥 ADD THIS
-  navigate("/submit-report");
-}}
+                setMission(null);
+                navigate("/submit-report");
+              }}
             >
               ✅ Complete Mission
             </button>

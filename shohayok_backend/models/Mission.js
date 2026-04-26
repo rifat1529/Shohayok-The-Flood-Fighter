@@ -9,10 +9,10 @@ const Mission = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
-    area: {
-      type: DataTypes.STRING(120),
-      allowNull: false
-    },
+    district: {   // ✅ ADD THIS
+    type: DataTypes.STRING,
+    allowNull: false
+  },
     status: {
       type: DataTypes.ENUM("active", "completed"),
       defaultValue: "active"
@@ -28,6 +28,11 @@ const Mission = sequelize.define(
     volunteerHeadId: {
   type: DataTypes.UUID,
   allowNull: true
+},
+
+volunteers: {
+  type: DataTypes.JSON,
+  defaultValue: []
 }
   },
   {

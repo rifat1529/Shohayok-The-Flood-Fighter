@@ -1,45 +1,152 @@
-import { useEffect } from "react";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:5000", {
-  transports: ["websocket"],
-});
+import "../styles/volunteer.css";
+import { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
+import socket from "../socket/socket";
+import axios from "../api/axios";
 
 export default function VolunteerDashboard() {
-  const user = JSON.parse(localStorage.getItem("user"));
-  const mission = JSON.parse(localStorage.getItem("activeMission"));
+  const [mission, setMission] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // ==========================
+  // 🔥 FETCH MISSION (IMPORTANT)
+  // ==========================
   useEffect(() => {
-    if (!mission || !user) return;
-
-    let lastSent = 0;
-
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const now = Date.now();
-
-        // 🔥 send প্রতি 3 সেকেন্ডে একবার (VERY IMPORTANT)
-        if (now - lastSent < 3000) return;
-
-        lastSent = now;
-
-        socket.emit("send-location", {
-          userId: user.id,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          missionId: mission.id,
-          role: "volunteer"
-        });
-      },
-      (err) => console.error(err),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0
+    const fetchMission = async () => {
+      try {
+        const res = await axios.get("/missions/volunteer/me");
+        if (res.data.length > 0) {
+          setMission(res.data[0]);
+          localStorage.setItem("mission", JSON.stringify(res.data[0]));
+        }
+      } catch (err) {
+        console.error("❌ fetch mission error:", err);
       }
-    );
+    };
 
-    return () => navigator.geolocation.clearWatch(watchId);
+    fetchMission();
   }, []);
 
-  return <div>📡 Tracking (low usage mode)...</div>;
+  // ==========================
+  // 🔔 SOCKET (FILTERED)
+  // ==========================
+  useEffect(() => {
+    const handleMission = (data) => {
+      console.log("🚁 Mission received:", data);
+
+      // 🔥 DISTRICT CHECK (MOST IMPORTANT)
+      if (user?.district !== data.district) return;
+
+      alert(data.message);
+
+      const newMission = {
+        id: data.missionId,
+        area: data.district || "Unknown"
+      };
+
+      setMission(newMission);
+      localStorage.setItem("mission", JSON.stringify(newMission));
+    };
+
+    socket.on("mission", handleMission);
+
+    return () => socket.off("mission", handleMission);
+  }, [user]);
+
+  // ==========================
+  // 🔥 LOAD SAVED (fallback)
+  // ==========================
+  useEffect(() => {
+    const saved = localStorage.getItem("mission");
+    if (saved && !mission) {
+      setMission(JSON.parse(saved));
+    }
+  }, [mission]);
+
+  // ==========================
+  // 🔥 JOIN
+  // ==========================
+  const handleJoin = async () => {
+    if (!mission?.id) return;
+
+    setLoading(true);
+
+    try {
+      await axios.post(`/missions/${mission.id}/join`);
+      alert("✅ Joined mission!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to join");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="vol-page">
+      <Navbar />
+
+      <div className="vol-wrap">
+
+        {/* HEADER */}
+        <div className="vol-header">
+          <div className="vol-header-left">
+            <p className="vol-tagline">// VOLUNTEER CONTROL</p>
+            <h2 className="vol-title">Volunteer Dashboard</h2>
+          </div>
+
+          <div className="vol-status">
+            <div className="vol-status-dot" />
+            <span>ONLINE</span>
+          </div>
+        </div>
+
+        {/* EMPTY */}
+        {!mission ? (
+          <div className="vol-empty">
+            <div className="vol-empty-icon">🟢</div>
+            <p>No active mission</p>
+          </div>
+        ) : (
+          <div className="request-card">
+
+            <div className="request-card-header">
+              <div>
+                <p className="mission-label">ACTIVE MISSION</p>
+                <h3 className="mission-title">{mission.area}</h3>
+              </div>
+
+              <div className="mission-badge">
+                PRIORITY
+              </div>
+            </div>
+
+            <div className="mission-info">
+              <div className="mission-row">
+                <span className="mission-row-label">Mission ID</span>
+                <span className="mission-row-value">{mission.id}</span>
+              </div>
+
+              <div className="mission-divider" />
+
+              <div className="mission-row">
+                <span className="mission-row-label">Area</span>
+                <span className="mission-row-value">{mission.area}</span>
+              </div>
+            </div>
+
+            <button
+              className={`join-btn ${loading ? "loading" : ""}`}
+              onClick={handleJoin}
+            >
+              {loading ? "Joining..." : "✅ Join Mission"}
+            </button>
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

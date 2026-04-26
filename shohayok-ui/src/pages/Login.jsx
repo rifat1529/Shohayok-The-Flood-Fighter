@@ -8,13 +8,13 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState(""); // 🔥 NEW
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(""); // 🔥 clear previous error
+    setError("");
 
     try {
       const res = await axios.post("/auth/login", {
@@ -22,24 +22,52 @@ export default function Login() {
         password,
       });
 
-      if (res.data.accessToken) {
-        localStorage.setItem("token", res.data.accessToken);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
+      const { accessToken, user } = res.data;
 
-        const role = res.data.user.role;
+      // 🔥 DEBUG (IMPORTANT)
+      console.log("LOGIN RESPONSE:", res.data);
+      console.log("ROLE:", user?.role);
 
-        if (role === "admin") {
-          navigate("/admin");
-        } else if (role === "volunteer") {
-          navigate("/volunteer-head-dashboard");
-        } else {
-          navigate("/");
-        }
+      if (!accessToken || !user) {
+        setError("Invalid server response");
+        return;
       }
+
+      // ✅ SAVE
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      const role = user.role;
+
+      // 🔥 SAFE NAVIGATION
+      switch (role) {
+        case "admin":
+          navigate("/admin");
+          break;
+
+        case "volunteer_head":
+          navigate("/volunteer-head-dashboard");
+          break;
+
+        case "volunteer":
+          navigate("/volunteer-dashboard");
+          break;
+
+        case "user":
+          navigate("/");
+          break;
+
+        default:
+          console.warn("Unknown role:", role);
+          navigate("/");
+      }
+
     } catch (err) {
+      console.error("LOGIN ERROR:", err.response?.data || err.message);
+
       const msg =
         err.response?.data?.message || "Login failed. Try again.";
-      setError(msg); // 🔥 show error in UI
+      setError(msg);
     }
   };
 
@@ -58,24 +86,34 @@ export default function Login() {
         <div className="login-right">
           <form className="login-form" onSubmit={handleLogin}>
             <h2 className="form-heading">Sign In</h2>
-             Enter you email address :
+            Enter your email :
             <input
               type="email"
               className="field-input"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-              Enter your password :
+              required
+            /> Enter your password :
+
             <input
               className="field-input"
               type={showPass ? "text" : "password"}
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-            />
+              required
+            /> <br></br>
 
-            {/* 🔥 ERROR SHOW */}
+            <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <input
+                type="checkbox"
+                checked={showPass}
+                onChange={() => setShowPass(!showPass)}
+              />
+              Show Password
+            </label>
+
             {error && (
               <p style={{ color: "red", textAlign: "center", marginBottom: "10px" }}>
                 {error}
@@ -94,9 +132,9 @@ export default function Login() {
             </p>
 
             <p style={{ textAlign: "center", marginTop: "10px" }}>
-              <a href="/forgot-password" style={{ color: "#6366f1" }}>
+              <Link to="/forgot-password" style={{ color: "#6366f1" }}>
                 Forgot Password?
-              </a>
+              </Link>
             </p>
           </form>
         </div>

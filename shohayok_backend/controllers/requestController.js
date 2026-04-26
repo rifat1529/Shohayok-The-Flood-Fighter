@@ -2,10 +2,13 @@ const Request = require("../models/Request");
 const AcceptedRequest = require("../models/AcceptedRequest");
 const User = require("../models/User");
 const Mission = require("../models/Mission");
-const Conversation = require("../models/Conversation");
-const { sendAdminAlert } = require("../utils/email");
+const Alert = require("../models/Alert");
 
-// 🔥 helper (UPDATED: village বাদ)
+const { sendAdminAlert, sendMissionEmail } = require("../utils/email");
+
+// ==========================
+// 🔹 HELPER
+// ==========================
 const getArea = (r) => `${r.district}`;
 
 // ==========================
@@ -19,7 +22,6 @@ const createGuestRequest = async (req, res) => {
       return res.status(400).json({ message: "All guest fields required" });
     }
 
-    // ✅ CREATE FIRST
     const request = await Request.create({
       name,
       phone,
@@ -31,19 +33,12 @@ const createGuestRequest = async (req, res) => {
       status: "pending"
     });
 
-    // 🔥 COUNT (UPDATED AREA LOGIC)
     const count = await Request.count({
-      where: {
-        district,
-        subDistrict,
-        status: "pending"
-      }
+      where: { district, subDistrict, status: "pending" }
     });
 
-    // 🔥 SEND ONLY ONCE
     if (count === 5) {
-      const area = `${district}, ${subDistrict}`;
-      await sendAdminAlert(area, count);
+      await sendAdminAlert(`${district}, ${subDistrict}`, count);
     }
 
     return res.status(201).json({ message: "Request submitted", request });
@@ -66,11 +61,8 @@ const createUserRequest = async (req, res) => {
     }
 
     const user = await User.findByPk(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ CREATE FIRST
     const request = await Request.create({
       userId: user.id,
       name: user.name,
@@ -83,18 +75,12 @@ const createUserRequest = async (req, res) => {
       status: "pending"
     });
 
-    // 🔥 COUNT (UPDATED AREA LOGIC)
     const count = await Request.count({
-      where: {
-        district,
-        subDistrict,
-        status: "pending"
-      }
+      where: { district, subDistrict, status: "pending" }
     });
 
     if (count === 5) {
-      const area = `${district}, ${subDistrict}`;
-      await sendAdminAlert(area, count);
+      await sendAdminAlert(`${district}, ${subDistrict}`, count);
     }
 
     return res.status(201).json({ message: "Request submitted", request });
@@ -127,10 +113,7 @@ const getAllRequests = async (req, res) => {
       .filter(([_, count]) => count >= 5)
       .map(([area, count]) => ({ area, count }));
 
-    return res.json({
-      requests,
-      alerts
-    });
+    return res.json({ requests, alerts });
 
   } catch (err) {
     console.error(err);
@@ -169,17 +152,16 @@ const updateRequestStatus = async (req, res) => {
     const request = await Request.findByPk(req.params.id);
     if (!request) return res.status(404).json({ message: "Not found" });
 
-    const area = getArea(request);
-
+    const district = request.district?.toLowerCase().trim() || "unknown";
     // =====================
-    // 🔥 APPROVE
+    // ✅ APPROVE
     // =====================
     if (status === "approved") {
 
       await AcceptedRequest.create({
         originalRequestId: request.id,
         userId: request.userId,
-        name: request.name || "Registered User",
+        name: request.name,
         phone: request.phone,
         district: request.district,
         subDistrict: request.subDistrict,
@@ -189,76 +171,104 @@ const updateRequestStatus = async (req, res) => {
         status: "approved"
       });
 
-      if (request.userId) {
-        await Conversation.create({
-          type: "private",
-          participants: [request.userId, req.user.id]
-        });
-      }
-
       await request.update({ status: "approved" });
+      const district = request.district?.toLowerCase().trim() || "unknown";
+      // 🚁 MISSION
+   const approvedCount = await AcceptedRequest.count({
+  where: { district }
+});
 
-      // 🔥 MISSION TRIGGER
-      const approvedCount = await AcceptedRequest.count({
-        where: {
-          district: request.district,
-          subDistrict: request.subDistrict
-        }
-      });
+if (approvedCount >= 3) {
 
-      if (approvedCount >= 3) {
   const existingMission = await Mission.findOne({
-    where: { area, status: "active" }
+    where: { district, status: "active" }
   });
 
   if (!existingMission) {
 
-    // 🔥 FIND VOLUNTEER HEAD (same district)
     const volunteerHead = await User.findOne({
-      where: {
-        role: "volunteer",
-        district: request.district
+      where: { role: "volunteer_head", district }
+    });
+
+    if (volunteerHead) {
+
+      const mission = await Mission.create({
+        district,
+        status: "active",
+        volunteerHeadId: volunteerHead.id
+      });
+
+      console.log("🚁 Mission created:", mission.id);
+
+      const io = req.app.get("io");
+
+      if (io) {
+        io.emit("mission", {
+          message: `🚁 Mission created in ${district}`,
+          missionId: mission.id,
+          district
+        });
       }
-    });
 
-    if (!volunteerHead) {
-      console.log("❌ No volunteer found for district:", request.district);
-      return;
+      // 📧 EMAIL → HEAD
+      await sendMissionEmail(volunteerHead.email, district);
+
+      // 📧 EMAIL → VOLUNTEERS
+      const volunteers = await User.findAll({
+        where: { role: "volunteer", district }
+      });
+
+      for (const v of volunteers) {
+        await sendMissionEmail(v.email, district);
+      }
     }
-
-    // 🔥 CREATE MISSION WITH ASSIGNMENT
-    await Mission.create({
-      area,
-      status: "active",
-      volunteerHeadId: volunteerHead.id
-    });
-
-    console.log("✅ Mission assigned to:", volunteerHead.id);
   }
 }
 
-      return res.json({
-        message: "Request approved",
-        notify: "Rescue team is on the way"
-      });
+      // 🚨 ALERT (5+ requests)
+      const totalRequests = await Request.count({ where: { district } });
+
+      if (totalRequests >= 5) {
+
+        const existingAlert = await Alert.findOne({
+          where: { district, status: "active" }
+        });
+
+        if (!existingAlert) {
+
+          await Alert.create({
+            district,
+            status: "active"
+          });
+
+          console.log("🚨 Alert triggered in:", district);
+
+          const io = req.app.get("io");
+          if (io) {
+            io.emit("emergency-alert", {
+              message: `🚨 Emergency Alert in ${district}`
+            });
+          }
+        }
+      }
+
+      return res.json({ message: "Request approved" });
     }
 
     // =====================
-    // 🔥 DECLINE
+    // ❌ DECLINE
     // =====================
     await request.update({ status: "declined" });
 
-    return res.json({
-      message: "Request declined",
-      notify: "Please try again later"
-    });
+    return res.json({ message: "Request declined" });
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Failed to update status" });
+    console.error("🔥 ERROR:", err);
+    return res.status(500).json({ message: err.message });
   }
 };
 
+// ==========================
 module.exports = {
   createGuestRequest,
   createUserRequest,
