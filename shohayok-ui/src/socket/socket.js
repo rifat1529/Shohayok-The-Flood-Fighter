@@ -10,6 +10,7 @@ const socket = io("http://localhost:5000", {
 
   // optional but useful
   withCredentials: true,
+  autoConnect: true,
 });
 
 // ==========================
@@ -18,16 +19,19 @@ const socket = io("http://localhost:5000", {
 socket.on("connect", () => {
   console.log("🟢 Connected to socket:", socket.id);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (user?.id) socket.emit("register-user", user);
+  if (user?.id) {
+    socket.emit("join", user.id);
+    console.log("✅ Joined user room:", user.id);
+  }
 });
 
 // 🔥 ADD THIS
-socket.on("register-user", (user) => {
-  if (user?.id) {
-    socket.join(user.id);
-    console.log("✅ User joined room:", user.id);
-  }
-});
+// socket.on("register-user", (user) => {
+//   if (user?.id) {
+//     socket.join(user.id);
+//     console.log("✅ User joined room:", user.id);
+//   }
+// });
 
 socket.on("disconnect", () => {
   console.log("🔴 Disconnected from socket");

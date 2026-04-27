@@ -1,164 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap');
 
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+/* --- MAIN ROOT --- */
+.fp-root {
+  min-height: 100vh;
+  background: #09090b;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+  font-family: 'Inter', sans-serif;
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
 
-        .fp-root {
-          min-height: 100vh;
-          background: #0a0c10;
-          background-image: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.07) 0%, transparent 60%);
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-        }
+/* --- CENTERING LAYOUT --- */
+.fp-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 40px 20px;
+}
 
-        .fp-center {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: calc(100vh - 64px);
-          padding: 24px;
-        }
+/* --- GLASSMORPHISM CARD --- */
+.fp-card {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
 
-        .fp-card {
-          width: 100%;
-          max-width: 420px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          padding: 40px 36px;
-        }
+/* --- TYPOGRAPHY & ICONS --- */
+.fp-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-        .fp-icon {
-          width: 52px; height: 52px;
-          background: rgba(99,102,241,0.15);
-          border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 24px;
-          margin-bottom: 22px;
-        }
+.fp-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: #6366f1;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
 
-        .fp-tag {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #6366f1;
-          letter-spacing: 3px;
-          text-transform: uppercase;
-          margin-bottom: 6px;
-        }
+.fp-heading {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
 
-        .fp-heading {
-          font-size: 30px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin-bottom: 8px;
-        }
+.fp-sub {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
 
-        .fp-sub {
-          font-size: 14px;
-          color: #475569;
-          margin-bottom: 28px;
-          line-height: 1.6;
-        }
+/* --- PROGRESS STEPS --- */
+.fp-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+}
 
-        .fp-label {
-          font-size: 12px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #64748b;
-          letter-spacing: 2px;
-          margin-bottom: 6px;
-        }
+.fp-step {
+  height: 4px;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
 
-        .fp-input {
-          width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
-          padding: 13px 16px;
-          font-size: 15px;
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-          outline: none;
-          margin-bottom: 16px;
-          box-sizing: border-box;
-          transition: border-color 0.2s;
-        }
+.fp-step.active {
+  background: #6366f1;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+}
 
-        .fp-input::placeholder { color: #334155; }
-        .fp-input:focus { border-color: rgba(99,102,241,0.45); }
+.fp-step.done {
+  background: #4f46e5;
+  opacity: 0.7;
+}
 
-        .fp-btn {
-          width: 100%;
-          background: linear-gradient(135deg, #4f46e5, #6366f1);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          padding: 14px;
-          font-size: 16px;
-          font-weight: 700;
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 1.5px;
-          cursor: pointer;
-          transition: opacity 0.2s;
-          margin-top: 4px;
-        }
+/* --- FORM INPUTS --- */
+.fp-label {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
 
-        .fp-btn:hover { opacity: 0.85; }
+.fp-input {
+  width: 100%;
+  display: block;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
+}
 
-        .fp-btn.green {
-          background: linear-gradient(135deg, #059669, #10b981);
-        }
+.fp-input::placeholder {
+  color: #475569;
+}
 
-        /* Steps */
-        .fp-steps {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 28px;
-        }
+.fp-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
 
-        .fp-step {
-          height: 3px;
-          border-radius: 3px;
-          flex: 1;
-          background: rgba(255,255,255,0.08);
-        }
+/* --- BUTTONS --- */
+.fp-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
 
-        .fp-step.active { background: #6366f1; }
-        .fp-step.done { background: #10b981; }
+.fp-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
 
-        /* Success */
-        .fp-success {
-          text-align: center;
-          padding: 20px 0;
-        }
+.fp-btn.green {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
 
-        .fp-success-icon {
-          font-size: 52px;
-          margin-bottom: 16px;
-        }
+.fp-btn.green:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
 
-        .fp-success-title {
-          font-size: 26px;
-          font-weight: 700;
-          color: #4ade80;
-          margin-bottom: 8px;
-        }
+/* --- SUCCESS STATE --- */
+.fp-success {
+  animation: fadeIn 0.5s ease;
+}
 
-        .fp-success-sub {
-          font-size: 14px;
-          color: #475569;
-        }
+.fp-success-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
 
-        .fp-back {
-          width: 100%;
-          margin-top: 16px;
-          background: rgba(255,255,255,0.05);
-          color: #94a3b8;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 10px;
-          padding: 12px;
-          font-size: 14px;
-          font-family: 'Rajdhani', sans-serif;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
+.fp-success-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 8px;
+}
 
-        .fp-back:hover { background: rgba(255,255,255,0.09); }
-      
+.fp-success-sub {
+  font-size: 15px;
+  color: #94a3b8;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 480px) {
+  .fp-card {
+    padding: 30px 20px;
+  }
+  
+  .fp-heading {
+    font-size: 24px;
+  }
+}

@@ -8,7 +8,6 @@ const {
   createGuestRequest,
   createUserRequest,
   getAllRequests,
-  getAcceptedRequests,
   updateRequestStatus
 } = require("../controllers/requestController");
 
@@ -24,7 +23,6 @@ router.post("/", authenticate, createUserRequest);
 
 // --- Admin Routes ---
 router.get("/", authenticate, authorize("admin"), getAllRequests);
-router.get("/accepted", authenticate, authorize("admin"), getAcceptedRequests);
 router.patch("/:id/status", authenticate, authorize("admin"), updateRequestStatus);
 
 module.exports = router;

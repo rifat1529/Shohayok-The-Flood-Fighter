@@ -1,233 +1,320 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap');
 
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+/* --- MAIN ROOT & LAYOUT --- */
+.reg-root {
+  min-height: 100vh;
+  background: #09090b;
+  background-image: 
+    radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+  font-family: 'Inter', sans-serif;
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
 
-        .reg-root {
-          min-height: 100vh;
-          background: #0a0c10;
-          background-image: radial-gradient(ellipse 70% 40% at 70% 60%, rgba(16,185,129,0.05) 0%, transparent 60%);
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-          padding-bottom: 60px;
-        }
+.reg-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 40px 20px;
+}
 
-        .reg-layout {
-          display: flex;
-          min-height: calc(100vh - 64px);
-          align-items: center;
-          justify-content: center;
-          padding: 36px 20px;
-        }
+/* --- GLASSMORPHISM CARD --- */
+.reg-card {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 500px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  padding: 40px;
+  box-sizing: border-box;
+}
 
-        .reg-card {
-          width: 100%;
-          max-width: 520px;
-          background: rgba(255,255,255,0.025);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 22px;
-          overflow: hidden;
-        }
+/* --- HEADER --- */
+.reg-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 30px;
+}
 
-        .reg-header {
-          padding: 30px 34px 24px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          display: flex;
-          align-items: center;
-          gap: 18px;
-        }
+.reg-icon {
+  font-size: 32px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-        .reg-icon {
-          width: 50px; height: 50px;
-          background: rgba(16,185,129,0.15);
-          border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 24px;
-          flex-shrink: 0;
-        }
+.reg-eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: #6366f1;
+  letter-spacing: 2px;
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+  font-weight: 600;
+}
 
-        .reg-eyebrow {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #10b981;
-          letter-spacing: 3px;
-          margin-bottom: 4px;
-        }
+.reg-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
 
-        .reg-title {
-          font-size: 28px;
-          font-weight: 700;
-          color: #f1f5f9;
-          line-height: 1;
-        }
+/* --- PROGRESS BAR --- */
+.reg-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  padding: 0 10px;
+}
 
-        /* Progress */
-        .reg-progress {
-          padding: 20px 34px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          display: flex;
-          align-items: center;
-          gap: 0;
-        }
+.prog-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
 
-        .prog-step {
-          display: flex;
-          align-items: center;
-          flex: 1;
-          gap: 0;
-        }
+.prog-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
 
-        .prog-circle {
-          width: 28px; height: 28px;
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 12px;
-          font-weight: 700;
-          font-family: 'Share Tech Mono', monospace;
-          flex-shrink: 0;
-          transition: all 0.3s;
-        }
+.prog-circle.active {
+  background: #6366f1;
+  color: white;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
 
-        .prog-circle.done { background: #10b981; color: white; }
-        .prog-circle.active { background: rgba(16,185,129,0.2); color: #10b981; border: 2px solid #10b981; }
-        .prog-circle.idle { background: rgba(255,255,255,0.05); color: #475569; border: 1px solid rgba(255,255,255,0.08); }
+.prog-circle.done {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
 
-        .prog-label {
-          font-size: 10px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #64748b;
-          letter-spacing: 1px;
-          margin-left: 8px;
-        }
+.prog-circle.idle {
+  background: rgba(15, 23, 42, 0.8);
+  color: #64748b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-        .prog-line {
-          flex: 1;
-          height: 2px;
-          background: rgba(255,255,255,0.07);
-          margin: 0 10px;
-        }
+.prog-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 1px;
+}
 
-        .prog-line.filled { background: #10b981; }
+.prog-line {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 16px;
+  margin-top: -20px; /* Align with circles */
+  border-radius: 2px;
+  position: relative;
+}
 
-        /* Body */
-        .reg-body {
-          padding: 28px 34px;
-        }
+.prog-line.filled {
+  background: #10b981;
+}
 
-        .reg-label {
-          font-size: 11px;
-          font-family: 'Share Tech Mono', monospace;
-          color: #64748b;
-          letter-spacing: 2px;
-          margin-bottom: 7px;
-          display: block;
-        }
+/* --- FORM LABELS & INPUTS --- */
+.reg-body {
+  display: flex;
+  flex-direction: column;
+}
 
-        .reg-input {
-          width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.09);
-          border-radius: 10px;
-          padding: 13px 14px;
-          font-size: 15px;
-          font-family: 'Rajdhani', sans-serif;
-          color: #e2e8f0;
-          outline: none;
-          box-sizing: border-box;
-          margin-bottom: 14px;
-          transition: border-color 0.2s;
-        }
+.reg-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
 
-        .reg-input::placeholder { color: #334155; }
-        .reg-input:focus { border-color: rgba(16,185,129,0.35); }
+.reg-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
+}
 
-        .pass-wrap {
-          position: relative;
-          margin-bottom: 14px;
-        }
+.reg-input::placeholder {
+  color: #475569;
+}
 
-        .pass-wrap .reg-input { margin-bottom: 0; padding-right: 44px; }
+.reg-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
 
-        .pass-toggle {
-          position: absolute;
-          right: 13px; top: 50%;
-          transform: translateY(-50%);
-          background: none; border: none;
-          color: #475569; cursor: pointer; font-size: 16px;
-        }
+/* Password Toggle Wrapper */
+.pass-wrap {
+  position: relative;
+  width: 100%;
+}
 
-        /* Role cards */
-        .role-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          margin-bottom: 14px;
-        }
+.pass-toggle {
+  position: absolute;
+  right: 12px;
+  top: 14px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+}
 
-        .role-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 12px;
-          padding: 14px;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-align: center;
-        }
+.pass-toggle:hover {
+  color: #f8fafc;
+}
 
-        .role-card:hover { border-color: rgba(255,255,255,0.16); }
+/* --- ROLE SELECTION GRID --- */
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
 
-        .role-card.selected {
-          border-color: rgba(16,185,129,0.4);
-          background: rgba(16,185,129,0.08);
-        }
+.role-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-        .role-emoji { font-size: 24px; margin-bottom: 6px; }
-        .role-name { font-size: 14px; font-weight: 700; color: #e2e8f0; }
-        .role-desc { font-size: 11px; color: #475569; font-family: 'Share Tech Mono', monospace; }
+.role-card:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(99, 102, 241, 0.4);
+}
 
-        /* Buttons */
-        .reg-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 8px;
-        }
+.role-card.selected {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
 
-        .btn-next {
-          flex: 1;
-          background: linear-gradient(135deg, #059669, #10b981);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          padding: 14px;
-          font-size: 15px;
-          font-weight: 700;
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 1.5px;
-          cursor: pointer;
-          transition: opacity 0.2s;
-        }
+.role-emoji {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
 
-        .btn-next:hover { opacity: 0.85; }
+.role-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
 
-        .btn-back {
-          background: rgba(255,255,255,0.05);
-          color: #64748b;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 10px;
-          padding: 14px 20px;
-          font-size: 14px;
-          font-family: 'Rajdhani', sans-serif;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
+.role-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
 
-        .btn-back:hover { background: rgba(255,255,255,0.09); }
+/* --- BUTTONS --- */
+.reg-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
 
-        .login-hint {
-          text-align: center;
-          font-size: 13px;
-          color: #475569;
-          margin-top: 18px;
-          font-family: 'Share Tech Mono', monospace;
-        }
+.btn-next {
+  flex: 1;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
 
-        .login-hint a { color: #34d399; text-decoration: none; }
-      
+.btn-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.btn-back {
+  flex: 0.5;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* --- LOGIN HINT --- */
+.login-hint {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.login-hint a {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.login-hint a:hover {
+  text-decoration: underline;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 480px) {
+  .reg-card {
+    padding: 30px 20px;
+  }
+  
+  .role-grid {
+    grid-template-columns: 1fr; /* Stack roles on very small screens */
+  }
+}

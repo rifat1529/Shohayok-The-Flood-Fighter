@@ -78,7 +78,6 @@ export default function Login() {
 
       <div className="login-layout">
         <div className="login-left">
-          <p className="left-tag">// RESCUE NETWORK</p>
           <h2 className="left-heading">
             Coordinate.<br />Respond.<br /><span>Save Lives.</span>
           </h2>
