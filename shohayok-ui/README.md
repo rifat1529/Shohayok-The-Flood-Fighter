@@ -1,16 +1,64 @@
-# React + Vite
+# 🖥️ Shohayok-UI (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the official frontend repository for the **Shohayok: The Flood Fighter** project. It is a React-based web application built to provide a real-time, responsive, and user-friendly interface for flood victims, volunteers, and admins.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ UI Features
 
-## React Compiler
+* **Role-Based Dashboards:** Separate views for Admins, Volunteers, and General Users.
+* **Real-time Chat Interface:** A modern, bubble-style chat UI powered by **Socket.io** for seamless communication.
+* **Volunteer Selection:** Users and Admins can browse and start conversations with available volunteers.
+* **Dynamic Relief Tracking:** Interactive components to view and manage flood relief data.
+* **Auth Integration:** Secure login and registration flows with persistent session management using JWT.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Technology Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Core Library:** React.js
+* **State Management:** React Hooks (`useState`, `useEffect`, `useContext`, `useRef`)
+* **Routing:** React Router DOM
+* **Real-time Communication:** Socket.io-client
+* **API Client:** Axios
+* **Styling:** CSS3 (Custom Modules) & Responsive Design
+
+---
+
+## 📂 Folder Structure
+
+```text
+shohayok-ui/
+├── public/              # Static assets (icons, images)
+├── src/
+│   ├── components/      # Reusable UI components (Buttons, Inputs, etc.)
+│   ├── pages/           # Main page views (Home, Login, Chat, Dashboard)
+│   ├── styles/          # CSS files for custom styling
+│   ├── utils/           # Helper functions and API configurations
+│   ├── App.js           # Main application logic & Routing
+│   └── main.jsx         # Entry point
+├── package.json         # Project dependencies and scripts
+└── README.md
+🚀 Getting Started
+To get the UI running on your local machine, follow these steps:
+
+1. Prerequisites
+Ensure you have Node.js and npm installed.
+
+2. Installation
+Navigate to the shohayok-ui directory and install dependencies:
+
+Bash
+npm install
+3. Environment Configuration
+Create a .env file in the root of the shohayok-ui folder and add your backend URL:
+
+Code snippet
+VITE_API_URL=http://localhost:5000
+VITE_SOCKET_URL=http://localhost:5000
+4. Running the App
+Start the development server:
+
+Bash
+npm run dev
+The app will typically be available at http://localhost:5173.
