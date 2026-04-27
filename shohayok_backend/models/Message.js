@@ -9,7 +9,7 @@ const Message = sequelize.define("Message", {
   },
 
   conversationId: {
-    type: DataTypes.UUID,
+    type: DataTypes.STRING,
     allowNull: false
   },
 

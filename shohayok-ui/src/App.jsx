@@ -13,9 +13,12 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddInstruction from "./pages/AddInstruction";
 import VolunteerDashboard from "./pages/VolunteerDashboard";
+import AppRoutes from "./routes/AppRoutes";
+
 
 function App() {
   return (
+    
     <Router>
       <Routes>
 

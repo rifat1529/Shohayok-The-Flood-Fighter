@@ -1,59 +1,102 @@
-import { useEffect, useState } from "react";
-import socket from "../socket/socket";
 
-function Chat({ userId, roomId }) {
+import { useEffect, useRef, useState } from "react";
+import socket from "../socket/socket";
+import "../styles/chat.css";
+
+export default function Chat() {
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  // const userId = currentUser?.id;
+  console.log("CURRENT USER:", currentUser);
+
+  const userId = String(currentUser?.id || "");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
-  useEffect(() => {
-    // join room
-    socket.emit("join_room", roomId);
+  const bottomRef = useRef(null);
 
-    // receive message
-    socket.on("receive_message", (data) => {
+  const ROOM = "global_chat";
+
+  // 🔥 JOIN ROOM
+  useEffect(() => {
+    socket.emit("joinConversation", ROOM);
+
+    socket.off("receiveMessage");
+
+    socket.on("receiveMessage", (data) => {
       setMessages((prev) => [...prev, data]);
     });
 
-    return () => {
-      socket.off("receive_message");
-    };
-  }, [roomId]);
+    return () => socket.off("receiveMessage");
+  }, []);
 
+  // 🔥 AUTO SCROLL
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // 🔥 SEND MESSAGE
   const sendMessage = () => {
     if (!message.trim()) return;
 
-    const data = {
-      roomId,
+    socket.emit("sendMessage", {
+      conversationId: ROOM,
       senderId: userId,
       message,
-    };
+    });
 
-    socket.emit("send_message", data);
-    setMessages((prev) => [...prev, data]);
     setMessage("");
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h3>Chat</h3>
+    <div className="chat-container">
 
-      <div style={{ height: "300px", overflowY: "auto", border: "1px solid #ccc", marginBottom: "10px" }}>
-        {messages.map((msg, i) => (
-          <div key={i}>
-            <b>{msg.senderId}</b>: {msg.message}
-          </div>
-        ))}
+      {/* HEADER */}
+      <div className="chat-header">
+        <h3 style={{ color: "white" }}>Group Chat</h3>
       </div>
 
-      <input
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type message..."
-      />
+      {/* BODY */}
+      <div className="chat-body">
+        
+        {messages.map((msg, i) => {
+  const isMe = String(msg.senderId) === String(userId);
+          console.log("MSG SENDER:", msg.senderId); 
+  return (
+    <div
+      key={i}
+      style={{
+        display: "flex",
+        justifyContent: isMe ? "flex-end" : "flex-start",
+        marginBottom: "10px",
+      }}
+    >
+      <div
+        style={{
+          background: isMe ? "#dcf8c6" : "#ffffff",
+          padding: "10px",
+          borderRadius: "10px",
+          maxWidth: "60%",
+        }}
+      >
+        {msg.message}
+      </div>
+    </div>
+  );
+})}
+        <div ref={bottomRef} />
+      </div>
 
-      <button onClick={sendMessage}>Send</button>
+      {/* INPUT */}
+      <div className="chat-input">
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type message..."
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        />
+
+        <button onClick={sendMessage}>Send</button>
+      </div>
     </div>
   );
 }
-
-export default Chat;

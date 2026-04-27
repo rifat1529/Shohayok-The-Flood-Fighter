@@ -22,7 +22,8 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/map" element={<MapView />} />
-        <Route path="/chat" element={<Chat />} />
+        {/* <Route path="/chat" element={<Chat />} /> */}
+        <Route path="/chat/:userId/:volunteerId" element={<Chat />} />
         <Route path="/need-help" element={<NeedHelp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/volunteer-head" element={<VolunteerHeadDashboard />} />
