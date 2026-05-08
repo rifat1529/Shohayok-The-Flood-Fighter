@@ -13,9 +13,6 @@ const socket = io("http://localhost:5000", {
   autoConnect: true,
 });
 
-// ==========================
-// 🔔 DEBUG LOGS
-// ==========================
 socket.on("connect", () => {
   console.log("🟢 Connected to socket:", socket.id);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -25,13 +22,6 @@ socket.on("connect", () => {
   }
 });
 
-// 🔥 ADD THIS
-// socket.on("register-user", (user) => {
-//   if (user?.id) {
-//     socket.join(user.id);
-//     console.log("✅ User joined room:", user.id);
-//   }
-// });
 
 socket.on("disconnect", () => {
   console.log("🔴 Disconnected from socket");

@@ -101,8 +101,6 @@ export default function MapView() {
   // 📍 RECEIVE LOCATION
   // =========================
  const handleLocation = async ({ userId, lat, lng, role }) => {
-  
-  console.log("📡 SOCKET DATA:", { userId, role });
   if (!mapRef.current) return; // 🔥 safety
 
   const key = `${userId}-${role}`;
@@ -133,11 +131,12 @@ export default function MapView() {
   // =========================
   // 📏 DISTANCE + ROUTE
   // =========================
-  const allMarkers = Object.values(markersRef.current);
-  const userLoc = allMarkers.find((m) => m.role === "user");
+  const userLoc = Object.values(markersRef.current).find(
+    (m) => m.role === "user"
+  );
 
-  const volunteerOrHead = allMarkers.find(
-    (m) => m.role === "volunteer" || m.role === "volunteer_head" && m !== userLoc
+  const volunteerOrHead = Object.values(markersRef.current).find(
+    (m) => m.role === "volunteer" || m.role === "volunteer_head"
   );
 
   if (userLoc && volunteerOrHead) {
@@ -197,7 +196,7 @@ export default function MapView() {
   // =========================
   const bounds = new mapboxgl.LngLatBounds();
 
-  allMarkers.forEach((m) => {
+  Object.values(markersRef.current).forEach((m) => {
     bounds.extend([m.lng, m.lat]);
   });
 
